@@ -10,14 +10,18 @@
   "deploymentTarget": "PaaS",
   "syncCriticalScope": false,
   "createdAt": "2026-07-29T00:00:00Z",
-  "phase": "prerequisites-paused-console-linking",
+  "phase": "foundation-complete",
+  "consoleContext": {
+    "org": "ACS Commerce",
+    "project": "HPattani Dish Price Change Demo",
+    "workspace": "Stage",
+    "note": "Linked to Stage workspace (checklist recommends a dedicated dev workspace); developer accepted."
+  },
   "prerequisites": {
     "aioCliInstalled": true,
     "npmDevSetupComplete": true,
-    "npmResetSetupComplete": false,
-    "adobeConsoleReady": false,
-    "pausedReason": "aio has no active IMS session; npm run reset/setup require interactive login. Developer paused to complete Console linking in their own terminal.",
-    "resumeInstructions": "Run: aio login; then `npm run reset && npm run setup` in the target project. Confirm .aio and .env exist. Then re-invoke the skill; resume at Phase 1f (strict validation) -> 1g (reinterpretation) -> 1h (finalize state) -> Phase 2 (Foundation).",
+    "npmResetSetupComplete": true,
+    "adobeConsoleReady": true,
     "checkedAt": "2026-07-29T00:00:00Z"
   },
   "reinterpretation": {
@@ -33,9 +37,52 @@
       "Basic-Auth on Public Webhook Action",
       "SKU->Date Package Mapping Storage Model"
     ],
-    "developerChoice": "pending"
+    "developerChoice": "proceed-with-todos"
   },
-  "foundation": { "status": "pending" },
+  "foundation": {
+    "status": "complete",
+    "completedAt": "2026-07-29T00:00:00Z",
+    "mergeConflictResolutions": {
+      "businessConfig": "none",
+      "eventing": "benign-merge: com.dish.pricechange.reporting.queued is publish-only in Flow 3 (§8.4.c) and gains its consumer in Flow 4 (§9.4.c); merge into one entry using Flow 4 runtimeActions ['commerce-events/reporting-delivery-consumer']",
+      "webhooks": "none"
+    },
+    "generatedFiles": [
+      "app.commerce.config.ts",
+      "scripts/register-internal-events-provider.js",
+      ".env.example",
+      "src/commerce-backend-ui-1/ext.config.yaml",
+      "src/commerce-backend-ui-1/lib/database/collection/sling_prerenewal_notifications/index.ts",
+      "src/commerce-backend-ui-1/lib/database/collection/sling_prerenewal_notifications/types.ts",
+      "src/commerce-backend-ui-1/lib/database/repository/sling_prerenewal_notifications/index.ts",
+      "src/commerce-backend-ui-1/lib/adobe-commerce/catalog/index.ts",
+      "src/commerce-backend-ui-1/lib/recurly/index.ts",
+      "src/commerce-backend-ui-1/lib/partner-billing/index.ts",
+      "src/commerce-backend-ui-1/lib/ums-reporting/index.ts",
+      "src/commerce-backend-ui-1/lib/logger/index.ts",
+      "src/commerce-backend-ui-1/lib/errors/index.ts",
+      "src/commerce-backend-ui-1/lib/events/publisher.ts",
+      "src/commerce-backend-ui-1/lib/reporting/builder.ts",
+      "src/commerce-backend-ui-1/lib/utils/params.ts",
+      "src/commerce-backend-ui-1/web-src/src/components/NavigationProvider/index.tsx",
+      "src/commerce-backend-ui-1/web-src/src/components/MainPage/index.tsx",
+      "src/commerce-backend-ui-1/actions/admin-ui-sdk/registration/index.ts",
+      "src/commerce-backend-ui-1/actions/constants.ts",
+      "src/commerce-backend-ui-1/web-src/src/types/constants.ts",
+      "src/commerce-backend-ui-1/test/actions/admin-ui-sdk/registration.test.ts"
+    ],
+    "removedSamplePackages": ["example", "commerce/events (checkout-submit)"],
+    "extensionId": "DishPriceChange",
+    "validated": true,
+    "validatedAt": "2026-07-29T00:00:00Z",
+    "validationNotes": "dev:validate exits 0. 9/9 tests pass. Coverage gate temporarily lowered to 0 in jest.config.js (developer choice 'accept lower coverage temporarily'); restore to 100 as TODOs get tests.",
+    "conventionNotes": [
+      "Used starter-kit singular dir convention lib/database/collection|repository/<name> (plan §5.3 showed plural) to match the working UserRepository + @lib aliases.",
+      "Kept starter-kit registration action shape: { registration: { menuItems, page } } wrapper + HttpMethod.POST (proven working) rather than template's unwrapped GET.",
+      "NavigationProvider seeded with a default Home entry (plan said empty skeleton) so the SPA shell renders; per-flow builds append entries.",
+      "customInstallationSteps script lives at project-root scripts/ (resolved relative to app.commerce.config.ts); not covered by lint/tsc which scan src/commerce-backend-ui-1/scripts."
+    ]
+  },
   "flows": [
     { "id": 1, "name": "Webhook Renewal Ingestion", "status": "pending" },
     { "id": 2, "name": "CSV Renewal Ingestion", "status": "pending" },

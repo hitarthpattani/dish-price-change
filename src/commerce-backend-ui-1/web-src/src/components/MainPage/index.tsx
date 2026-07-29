@@ -3,25 +3,18 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import {
-  View,
-  Flex,
-  ProgressCircle,
-  Text,
-  Provider,
-  lightTheme,
-  Heading
-} from '@adobe/react-spectrum'
+import { View, Flex, ProgressCircle } from '@adobe/react-spectrum'
 import type { MainPageProps } from './types'
 import { attach } from '@adobe/uix-guest'
 import { EXTENSION_ID } from '@web/types/constants'
 import { MainContainer } from '@adobe-commerce/aio-experience-kit'
-import HomeIcon from '@spectrum-icons/workflow/Home'
-import ShoppingCartIcon from '@spectrum-icons/workflow/ShoppingCart'
-import { HashRouter, Route, Routes } from 'react-router-dom'
-import ActionsForm from '../ActionsForm'
+import { navigationButtons, navigationRoutes } from '@components/NavigationProvider'
 
-export const MainPage: React.FC<MainPageProps> = ({ runtime: runtime, ims }) => {
+/**
+ * Top-level SPA shell (plan §5.6). Wires `buttons` and `routes` from NavigationProvider into
+ * MainContainer. Per-flow builds contribute additional entries to the NavigationProvider registry.
+ */
+export const MainPage: React.FC<MainPageProps> = ({ ims }) => {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -30,7 +23,6 @@ export const MainPage: React.FC<MainPageProps> = ({ runtime: runtime, ims }) => 
         const guestConnection = await attach({ id: EXTENSION_ID })
         ims.token = guestConnection?.sharedContext?.get('imsToken')
         ims.org = guestConnection?.sharedContext?.get('imsOrgId')
-        console.log('ims object', ims)
       }
       setIsLoading(false)
     }
@@ -38,49 +30,10 @@ export const MainPage: React.FC<MainPageProps> = ({ runtime: runtime, ims }) => 
     fetchCredentials()
   }, [])
 
-  const navigationButtons = [
-    {
-      label: 'Home',
-      path: '/',
-      icon: <HomeIcon size={'S'} gridArea="Home" marginEnd={'size-100'} />
-    },
-    {
-      label: 'Actions',
-      path: '/actions',
-      icon: <ShoppingCartIcon size={'S'} gridArea="Products" marginEnd={'size-100'} />
-    }
-  ]
-  const appRoutes = [
-    {
-      paths: ['/'],
-      component: (
-        <View>
-          <Heading level={1}>Home</Heading>
-          <Text>Welcome to the Home page</Text>
-        </View>
-      )
-    },
-    {
-      paths: ['/actions'],
-      component: <ActionsForm ims={ims} runtime={runtime} />
-    }
-  ]
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const renderActionsForm = () => (
-    <HashRouter>
-      <Provider theme={lightTheme} colorScheme={'light'}>
-        <Routes>
-          <Route index element={<ActionsForm ims={ims} runtime={runtime} />} />
-        </Routes>
-      </Provider>
-    </HashRouter>
-  )
-
   const renderMainContainer = () => (
     <MainContainer
       buttons={navigationButtons}
-      routes={appRoutes}
+      routes={navigationRoutes}
       padding={'size-0'}
       navigationMarginTop={'size-200'}
       navigationMarginBottom={'size-200'}

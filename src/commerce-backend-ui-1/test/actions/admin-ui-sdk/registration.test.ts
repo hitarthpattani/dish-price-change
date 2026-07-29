@@ -36,16 +36,15 @@ describe('registration action', () => {
 
       expect(registration.menuItems).toEqual([
         {
-          id: `${EXTENSION_ID}::first`,
-          title: 'Adobe Commerce First App on App Builder',
-          parent: `${EXTENSION_ID}::apps`,
-          sortOrder: 1
+          id: `${EXTENSION_ID}::price-change`,
+          title: 'Price Change Manager',
+          isSection: true
         },
         {
-          id: `${EXTENSION_ID}::apps`,
-          title: 'Apps',
-          isSection: true,
-          sortOrder: 100
+          id: `${EXTENSION_ID}::price-change::app`,
+          title: 'Application',
+          parent: `${EXTENSION_ID}::price-change`,
+          sandbox: 'allow-downloads allow-modals allow-popups'
         }
       ])
     })
@@ -56,7 +55,7 @@ describe('registration action', () => {
       const registration = body.registration as Record<string, unknown>
 
       expect(registration.page).toEqual({
-        title: 'Adobe Commerce First App on App Builder'
+        title: 'Price Change Manager'
       })
     })
 
@@ -84,8 +83,8 @@ describe('registration action', () => {
       const menuItems = registration.menuItems as Array<{ id: string; parent?: string }>
 
       expect(menuItems[0].id).toContain(EXTENSION_ID)
-      expect(menuItems[0].parent).toContain(EXTENSION_ID)
       expect(menuItems[1].id).toContain(EXTENSION_ID)
+      expect(menuItems[1].parent).toContain(EXTENSION_ID)
     })
   })
 

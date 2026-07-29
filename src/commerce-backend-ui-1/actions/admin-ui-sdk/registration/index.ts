@@ -2,11 +2,15 @@
  * <license header>
  */
 
-import { EXTENSION_ID } from '@actions/constants'
+import { EXTENSION_ID, APP_SLUG, APP_NAME } from '@actions/constants'
 import { RuntimeAction, HttpMethod, RuntimeActionResponse } from '@adobe-commerce/aio-toolkit'
 
 /**
- * Admin UI SDK registration action that returns the registration configuration for the extension.
+ * Admin UI SDK registration action (plan §5.6).
+ *
+ * Returns the fixed 2-level menu: a top-level section plus a single "Application" entry that
+ * renders the SPA. All internal navigation (CSV upload, Active/Pause mapping grids) happens
+ * inside the SPA via NavigationProvider routes — never as additional menuItems.
  */
 export const main = RuntimeAction.execute(
   'admin-ui-sdk-registration-action',
@@ -18,21 +22,23 @@ export const main = RuntimeAction.execute(
       registration: {
         menuItems: [
           {
-            id: `${EXTENSION_ID}::first`,
-            title: 'Adobe Commerce First App on App Builder',
-            parent: `${EXTENSION_ID}::apps`,
-            sortOrder: 1
+            id: `${EXTENSION_ID}::${APP_SLUG}`,
+            title: APP_NAME,
+            isSection: true
           },
           {
-            id: `${EXTENSION_ID}::apps`,
-            title: 'Apps',
-            isSection: true,
-            sortOrder: 100
+            id: `${EXTENSION_ID}::${APP_SLUG}::app`,
+            title: 'Application',
+            parent: `${EXTENSION_ID}::${APP_SLUG}`,
+            sandbox: 'allow-downloads allow-modals allow-popups'
           }
         ],
         page: {
-          title: 'Adobe Commerce First App on App Builder'
+          title: APP_NAME
         }
+        // Non-menu extension points (grid columns, mass actions, view buttons, banners, custom fees):
+        // none — this module's admin UI is entirely SPA-internal screens (§5.6). Per-flow builds
+        // (§N.4.e / template 09) would add them here if a future flow contributes any.
       }
     })
   }

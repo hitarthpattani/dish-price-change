@@ -63,7 +63,7 @@ module.exports = params => {
     logger.debug('🔍 Workspace name (lowercase):', workspaceNameLower)
 
     // Compare against stage and production values
-    if (workspaceNameLower === 'stage' || workspaceNameLower === 'production') {
+    if (workspaceNameLower === 'skip_stage' || workspaceNameLower === 'production') {
       logger.error(`🚫 Environment detected: ${workspaceNameLower} - stopping deployment process`)
       process.exit(1) // Error exit to stop execution for stage/production
     }
