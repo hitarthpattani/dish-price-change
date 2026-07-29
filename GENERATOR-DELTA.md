@@ -134,3 +134,41 @@ line, so `.env.example` is now tracked while `.env` stays ignored. Verified: `gi
 **Template edit — `03-env-example.md` (recommended for the skill):** have the generator add the
 `!.env.example` negation to `.gitignore` as part of writing `.env.example` (or write the example env
 to a non-ignored path), so the documented env template is tracked on every run without manual fixup.
+
+---
+
+## Plan-accuracy issues found during flow builds
+
+These are inaccuracies in the **migration plan** (`app-builder-migration-planner` output) and/or the
+generator templates, discovered when `npm run generate` validated the config against the real
+`@adobe/aio-commerce-lib-app` schema. They recur across flows, so fixing them at the planner/template
+level avoids repeated per-flow fixups.
+
+### 10 — `businessConfig` has no `select` type (Flow 1, recurs in Flows 3/4/5)
+
+The plan declares every Yes/No toggle as `type: 'select'` with `options: [{Yes,1},{No,0}]` and a
+string `default` (`'1'`/`'0'`). The `aio-commerce-lib-app` schema rejects this — allowed types are
+`list | text | password | email | url | tel | boolean`.
+
+**Fix applied (Flow 1):** mapped the Yes/No toggle to `type: 'boolean'`, `default: true` (no
+`options`). All remaining plan `select` Yes/No fields (Flow 3 §8.4.g, Flow 4 §9.4.g, Flow 5 §10.4.g —
+~15 more) will be mapped the same way; a non-binary `select` would map to `type: 'list'`.
+
+**Template/planner edit:** planner should emit `boolean` (or `list`) rather than `select`; generator
+`02-config-merge.md` should document the `select → boolean/list` mapping.
+
+### 11 — `eventing.external[]` shape (Flow 1, recurs in Flows 3/4)
+
+The plan (§5.1 and every §N.4.c) shows a flat external entry:
+`{ provider, name, label, runtimeActions }`. The schema requires the same nested shape as
+`eventing.commerce`: `{ provider: {label, description}, events: [{ name, label, description,
+runtimeActions }] }`, where **`description` is required** on both the provider and each event.
+
+**Fix applied (Flow 1):** restructured into `provider + events[]` and added a `description` to the
+event. Publish-only event types (Flow 2 §7.4.c `import.error`, Flow 3 §8.4.c `reporting.queued`
+before Flow 4 attaches its consumer) will need the same nesting; note the pub/sub merge for
+`reporting.queued` (Flow 3 publish + Flow 4 consumer) collapses into one `events[]` entry.
+
+**Template/planner edit:** planner should emit the nested `provider + events[]` shape for
+`eventing.external`; generator `02-config-merge.md` should describe merging external events into the
+correct provider's `events[]` (dedupe on event `name`, union `runtimeActions`).

@@ -1,0 +1,12 @@
+notification:
+  function: ../../../../build/actions/renewal/notification/index.js
+  web: 'yes'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+  annotations:
+    require-adobe-auth: true
+    final: true
+  limits:
+    timeout: 55000
+    memory: 512

@@ -13,6 +13,15 @@ runtimeManifest:
       license: Apache-2.0
       actions:
         $include: actions/admin-ui-sdk/actions.config.yaml
-    # Per-flow packages are merged in by Phase 3 builds:
-    #   renewal-ingestion, commerce-events   — Flow 1 §6.4.b
+    external-events:
+      license: Apache-2.0
+      actions:
+        $include: actions/external-events/actions.config.yaml
+    renewal:
+      license: Apache-2.0
+      actions:
+        $include: actions/renewal/actions.config.yaml
+      apis:
+        $include: actions/renewal/apis.config.yaml
+    # Per-flow packages merged by later Phase 3 builds:
     #   application-crons, price-change      — Flow 3 §8.4.b

@@ -1,0 +1,6 @@
+renewal-notification:
+  v1:
+    renewalNotification:
+      notification:
+        method: POST
+        response: http

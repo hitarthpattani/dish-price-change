@@ -9,13 +9,48 @@ export default defineConfig({
       'Automates subscription package price changes at renewal — webhook/CSV ingestion, ' +
       'eligibility evaluation, billing-platform and partner price updates, and outcome reporting.'
   },
-  // NOTE: businessConfig / eventing / webhooks keys are intentionally OMITTED here.
-  // Per-flow builds (commerce-app-builder-generator Phase 3) re-introduce each key the
-  // first time a flow declares an entry:
-  //   businessConfig.schema[]  — Flow 1 §6.4.g, Flow 3 §8.4.g, Flow 4 §9.4.g, Flow 5 §10.4.g
-  //   eventing.external[]      — Flow 1 §6.4.c, Flow 2 §7.4.c, Flow 3 §8.4.c, Flow 4 §9.4.c
-  //   eventing.commerce[]      — stays empty (module subscribes to no Commerce platform events)
-  //   webhooks[]               — stays empty (module is fully asynchronous)
+  businessConfig: {
+    schema: [
+      // Flow 1 §6.4.g — more fields added by Flow 3 §8.4.g, Flow 4 §9.4.g, Flow 5 §10.4.g.
+      // (Basic-auth username/password fields dropped — auth resolved to Adobe IMS S2S, §11 item 7.)
+      // NOTE: plan §6.4.g used type:'select' with Yes/No options, but the aio-commerce-lib-app
+      // schema has no 'select' type — Yes/No toggles map to type:'boolean' (default true/false).
+      {
+        type: 'boolean',
+        name: 'price_change_enable',
+        label: 'Enable Price Change Feature',
+        default: true,
+        description: 'Master toggle for accepting renewal webhooks.'
+      }
+    ]
+  },
+  eventing: {
+    // eventing.commerce stays empty — this module subscribes to no Commerce platform events.
+    commerce: [],
+    external: [
+      // Flow 1 §6.4.c — subscription on the custom "Price Change Internal Events" provider.
+      // The provider itself is created automatically by aio-commerce-lib-app's built-in
+      // externalEventsStep during installation (no custom install step needed — see §11 item 1).
+      // More entries added by Flow 3 §8.4.c and Flow 4 §9.4.c.
+      // NOTE: plan §6.4.c showed a flat { name, label, runtimeActions }, but the schema requires
+      // provider + events[] (mirroring eventing.commerce), with a required description per event.
+      {
+        provider: {
+          label: 'Price Change Internal Events',
+          description: 'Replaces RabbitMQ pre-renewal and reporting topics'
+        },
+        events: [
+          {
+            name: 'com.dish.pricechange.prerenewal.received',
+            label: 'Pre-Renewal Notification Received',
+            description: 'Inbound renewal/resume notification, consumed to persist the queue row.',
+            runtimeActions: ['external-events/pre-renewal-persist-consumer']
+          }
+        ]
+      }
+    ]
+  },
+  // webhooks[] stays omitted — module is fully asynchronous (no sync integration points).
   installation: {
     messages: {
       preInstallation:
@@ -24,15 +59,6 @@ export default defineConfig({
       postInstallation:
         'Configure the Recurly endpoint/auth, the Partner Billing endpoint/JWT, the UMS reporting ' +
         'endpoint, and the Active/Pause package SKU→date mappings before enabling the price-change cron.'
-    },
-    customInstallationSteps: [
-      {
-        script: './scripts/register-internal-events-provider.js',
-        name: 'Register Internal Events Provider',
-        description:
-          'Creates the custom Adobe I/O Events provider and its two event types ' +
-          '(prerenewal.received, reporting.queued) that replace the RabbitMQ topics.'
-      }
-    ]
+    }
   }
 })

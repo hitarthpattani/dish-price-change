@@ -13,7 +13,8 @@
  *   - com.dish.pricechange.import.error          (Flow 2 → AJO, out of scope)
  *
  * BLOCKING — Reinterpretation §11 item 1 (Internal I/O Events Provider): the provider id/label
- * this binds to is created by the §5.1 install step (scripts/register-internal-events-provider.js).
+ * this binds to is created automatically by aio-commerce-lib-app's built-in externalEventsStep
+ * during installation (from the eventing.external config in app.commerce.config.ts).
  * Resolve the provider/registration model before implementing.
  */
 export async function publishInternalEvent(
@@ -22,6 +23,6 @@ export async function publishInternalEvent(
 ): Promise<void> {
   // TODO: Implement per migration plan §5.5 "lib/events/publisher"
   // Use PublishEvent from '@adobe-commerce/aio-toolkit' to emit `eventType` with `payload`
-  // to the internal provider registered by the §5.1 custom installation step.
+  // to the internal provider registered automatically by the built-in externalEventsStep.
   throw new Error('TODO: implement publishInternalEvent')
 }

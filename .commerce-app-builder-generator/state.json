@@ -10,7 +10,7 @@
   "deploymentTarget": "PaaS",
   "syncCriticalScope": false,
   "createdAt": "2026-07-29T00:00:00Z",
-  "phase": "foundation-complete",
+  "phase": "flow-1-complete",
   "consoleContext": {
     "org": "ACS Commerce",
     "project": "HPattani Dish Price Change Demo",
@@ -105,7 +105,41 @@
     }
   },
   "flows": [
-    { "id": 1, "name": "Webhook Renewal Ingestion", "status": "pending" },
+    {
+      "id": 1,
+      "name": "Webhook Renewal Ingestion",
+      "status": "complete",
+      "completedAt": "2026-07-29T00:00:00Z",
+      "packagesDeclared": ["renewal-ingestion", "commerce-events"],
+      "generatedFiles": [
+        "src/commerce-backend-ui-1/actions/renewal-ingestion/renewal-notification-receiver/index.ts",
+        "src/commerce-backend-ui-1/actions/renewal-ingestion/actions.config.yaml",
+        "src/commerce-backend-ui-1/actions/renewal-ingestion/apis.config.yaml",
+        "src/commerce-backend-ui-1/actions/commerce-events/pre-renewal-persist-consumer/index.ts",
+        "src/commerce-backend-ui-1/actions/commerce-events/actions.config.yaml",
+        "src/commerce-backend-ui-1/test/actions/renewal-ingestion/renewal-notification-receiver/index.test.ts",
+        "src/commerce-backend-ui-1/test/actions/commerce-events/pre-renewal-persist-consumer/index.test.ts"
+      ],
+      "configMergedAt": "2026-07-29T00:00:00Z",
+      "configMerged": {
+        "businessConfigFields": ["price_change_enable"],
+        "eventingExternal": ["com.dish.pricechange.prerenewal.received"],
+        "eventingCommerce": [],
+        "webhooks": []
+      },
+      "validatedAt": "2026-07-29T00:00:00Z",
+      "validated": true,
+      "reinterpretationChoice": "mixed (item 1 todos, item 7 answered)",
+      "reinterpretationAnswers": {
+        "item7_basic_auth_on_public_webhook": "RESOLVED — use Adobe IMS S2S with annotation require-adobe-auth: true on renewal-notification-receiver; no in-handler Basic auth. Dropped businessConfig fields price_change_auth_username and price_change_auth_password (only price_change_enable retained).",
+        "item1_internal_events_provider": "TODOs — provider creation deferred to §5.1 install step; consumer + subscription generated with TODO placeholders."
+      },
+      "todoCount": 4,
+      "schemaFixes": [
+        "businessConfig: plan §6.4.g type:'select' (Yes/No) is invalid in aio-commerce-lib-app schema -> mapped to type:'boolean' (default true).",
+        "eventing.external: plan §6.4.c flat { name,label,runtimeActions } is invalid -> restructured to provider + events[] with a required description per event (mirrors eventing.commerce)."
+      ]
+    },
     { "id": 2, "name": "CSV Renewal Ingestion", "status": "pending" },
     { "id": 3, "name": "Price Change Execution", "status": "pending" },
     { "id": 4, "name": "Reporting Delivery", "status": "pending" },
