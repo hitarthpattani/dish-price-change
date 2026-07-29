@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+coverage
+package-lock.json
+*.log
+.aio
+*.zip
+HPattaniExtCompile-3343354-Stage.json
+

@@ -1,0 +1,9 @@
+{
+    "name": "ExtensionDemo",
+    "displayName": "App Builder Extension Demo",
+    "description": "An app builder application demonstrating how to build an extension in App Builder and register it with the Commerce backend UI extension point.",
+    "platform": "web",
+    "id": "ExtensionDemo",
+    "version": "1.0.0"
+  }
+  

@@ -1,0 +1,11 @@
+checkout-submit-consumer:
+  function: ../../../../../build/actions/commerce/events/checkout-submit/consumer/index.js
+  web: 'no'
+  runtime: nodejs:22
+  limits:
+    memory: 512
+  inputs:
+    LOG_LEVEL: debug
+  annotations:
+    require-adobe-auth: true
+    final: true

@@ -1,0 +1,1457 @@
+---
+description: Creating Adobe Commerce Client Operations using @adobe-commerce/aio-toolkit
+globs: '**/{actions,lib}/**/*.{ts,js},.env'
+alwaysApply: false
+---
+
+# Creating Adobe Commerce Client Operations
+
+## Trigger Conditions
+
+This rule applies when the user requests to integrate Adobe Commerce API into their actions using any of these phrases:
+
+- "Create an Adobe Commerce client"
+- "Make an API call to Commerce"
+- "Add Commerce API to [action-name]"
+- "Create a product in Commerce"
+- "Create an order in Commerce"
+- "Connect to Adobe Commerce"
+- "Setup Commerce connection"
+- "Call Commerce API"
+- "Integrate Commerce with [action-name]"
+- "Use Commerce REST API"
+- "I need to interact with Commerce API"
+- "Add Commerce client to my action"
+
+**Important**: This rule does NOT create new actions. It integrates Commerce API into existing actions only.
+
+**Integration with Other Action Creation Rules**:
+
+When using action creation rules (RuntimeAction, WebhookAction, GraphQLAction, EventConsumerAction, OpenwhiskAction) and the developer mentions Commerce operations in the business logic:
+
+- **Automatically trigger this rule** after the action is created
+- Examples of Commerce operations: "create product", "get customer", "update order", "call Commerce API", "fetch products from Commerce"
+- This rule handles all Commerce client setup, connection methods, and API integration
+
+**If you need to create a new action first**:
+
+- Use the "Create Runtime Action" rule to create the action
+- Then this rule will add Commerce API integration to that action
+
+**This rule offers two implementation approaches**:
+
+**Approach A: Centralized Client Builder (Recommended)**
+
+1. Creates a reusable `AdobeCommerceClientBuilder` class in `lib/adobe-commerce/client-builder/` (if not exists)
+2. Integrates Commerce API calls into existing runtime actions using `getClient()` method
+3. Uses singleton pattern to avoid creating multiple client instances
+4. Best for: Multiple actions needing Commerce API
+
+**Approach B: Direct Connection (Simpler)**
+
+1. Creates connection and client directly in the runtime action
+2. No shared client builder
+3. Best for: Single action with Commerce API, one-off use cases
+
+When any of these patterns are detected, follow this process:
+
+## Step 1: Verify Prerequisites
+
+Before proceeding, verify that `@adobe-commerce/aio-toolkit` is installed:
+
+1. Check if the package exists in `package.json` dependencies
+2. If NOT installed, inform the user and ask if they want to install it:
+   ```bash
+   npm install @adobe-commerce/aio-toolkit
+   ```
+3. **Check Project Type**: Detect project structure
+   - Check for `application:` section in root `app.config.yaml` (standard actions)
+   - Check for `extensions:` section in root `app.config.yaml` (extension point actions)
+   - If extensions exist, parse the `$include` path to get extension directory
+     - Example: `$include: src/commerce-backend-ui-1/ext.config.yaml` → directory: `src/commerce-backend-ui-1`
+     - Example: `$include: extensions/my-ext/ext.config.yaml` → directory: `extensions/my-ext`
+   - Note: Projects can have BOTH standard actions AND extension point actions
+
+4. **Detect Language (TypeScript vs JavaScript)**: Automatically determine the project language
+
+   **Check for TypeScript indicators (check ALL of these)**:
+   1. **Package Dependencies**: Look for `typescript` in `package.json` dependencies or devDependencies
+   2. **Config File**: Check if `tsconfig.json` exists in project root
+   3. **TypeScript Loaders**: Look for `ts-loader`, `ts-node`, or `@types/*` packages in `package.json`
+   4. **Build Scripts**: Check for TypeScript compilation in `package.json` scripts (e.g., `tsc`, `tsup`, `esbuild` with `.ts`)
+   5. **Existing Files**: Check for `.ts` or `.tsx` files in key directories (`actions/`, `src/`, `lib/`)
+   6. **Compiled Output**: Check `app.config.yaml` or `ext.config.yaml` for `build/` directory references (indicates TypeScript compilation)
+
+   **Detection Logic**:
+   - **If ANY of the following are true → TypeScript project**:
+     - `typescript` package installed AND `tsconfig.json` exists
+     - Multiple TypeScript indicators (2 or more from above list)
+     - Existing `.ts` files found in `actions/` or `lib/` directories
+   - **Otherwise → JavaScript project**
+
+   **Action**:
+   - **If TypeScript detected**: Use `.ts` extension and TypeScript syntax for all generated code
+   - **If JavaScript detected**: Use `.js` extension and JavaScript syntax for all generated code
+   - **Log the detection**: Inform user "✓ Detected [TypeScript/JavaScript] project"
+   - This eliminates the need to ask the developer about language preference
+
+   **Examples**:
+   - **TypeScript Project**: Has `typescript` + `tsconfig.json` → Generate `.ts` files
+   - **JavaScript Project**: No TypeScript indicators → Generate `.js` files
+   - **Ambiguous Case**: Has TypeScript setup but only `.js` files in actions/ → Generate `.js` to match existing
+   - **Migration Case**: Has both `.ts` and `.js` files → Use majority language (count files in `actions/` and `lib/`)
+
+5. **Check for Existing Actions**: Verify that at least one runtime action exists
+   - List all existing actions from `actions/` directory (root application)
+   - List all existing actions from `[extension-path]/actions/` directory (extensions)
+   - If NO actions exist:
+     - Inform the user that this rule requires existing actions
+     - Recommend: "Please use the 'Create Runtime Action' rule first to create an action, then return to this rule to add Commerce API integration"
+     - Stop execution and wait for user to create an action
+   - If actions exist: Proceed to next step
+
+6. **Check MCP Server Availability**: Verify commerce-extensibility MCP server is enabled
+   - Check if `search-commerce-docs` tool is available from the MCP server
+   - This provides RAG-based search for Commerce API patterns and documentation
+   - Example usage: `/search-commerce-docs "How to get list of products using REST endpoint?"`
+   - If available: Use it to search for relevant Commerce API patterns based on user's request
+   - If NOT available: Inform user that MCP server is not enabled, but proceed with rule execution
+   - Note: MCP server enhances the rule by providing Commerce-specific API guidance
+
+7. Only proceed to Step 2 after confirming the toolkit is available and at least one action exists
+
+## Step 2: Ask Required Questions
+
+Before generating any code, ask the user the following questions:
+
+**Important**:
+
+- If any question is unclear or you need more information to proceed, continue asking follow-up questions until you have complete clarity on what to build. Do not make assumptions - keep the conversation going until all details are clear.
+- Once all questions are clearly answered, move to Step 3 to get user confirmation before generating any code.
+
+### Core Questions:
+
+1. **Implementation Approach**: How do you want to implement the Commerce client?
+   - **Option A: Centralized Client Builder** (Recommended)
+     - Creates reusable `AdobeCommerceClientBuilder` class in `lib/adobe-commerce/client-builder/`
+     - Singleton pattern - client instance is reused across multiple actions
+     - Best for: Projects with multiple actions needing Commerce API
+     - Benefits: Code reusability, consistent configuration, easier maintenance
+   - **Option B: Direct Connection in Action**
+     - Creates connection and client directly in the runtime action
+     - No shared client builder
+     - Best for: Single action with Commerce API, one-off use cases
+     - Benefits: Simpler, all code in one place, no external dependencies
+
+2. **Connection Method**: How do you want to connect to Adobe Commerce?
+   - **Option A: OAuth 1.0a Connection** (`Oauth1aConnection`)
+     - Use Case: Direct Commerce instance integration
+     - Authentication: OAuth 1.0a protocol
+     - Best for: On-premise or self-hosted Commerce instances
+   - **Option B: IMS Connection** (`ImsConnection`)
+     - Use Case: Adobe Commerce Cloud integration
+     - Authentication: Adobe Identity Management Services (IMS)
+     - Best for: Adobe Commerce Cloud with IMS authentication
+   - **Option C: Basic Auth Connection** (`BasicAuthConnection`)
+     - Use Case: Simple username/password authentication
+     - Authentication: HTTP Basic Authentication
+     - Best for: Development/testing environments (not recommended for production)
+
+3. **Existing Action Selection**: Which existing action do you want to add Commerce API integration to?
+
+   **The rule will**:
+   - List all existing actions from root `actions/` directory (if root application exists)
+   - List all existing actions from `[extension-path]/actions/` directory (if extension exists)
+   - Include both simple actions and packaged actions
+   - Show action names and their file paths
+
+   **User selects**:
+   - Choose from the list of existing actions
+   - Example: `runtime-action`, `order-processor`, `product/created`
+
+   **Note**:
+   - If Centralized Client Builder: Action will use `AdobeCommerceClientBuilder.getClient()` for Commerce API calls
+   - If Direct Connection: Action will have direct connection and client initialization (no client builder)
+
+   **If you need a new action**: Use the "Create Runtime Action" rule first, then return to this rule
+
+4. **Commerce Operation**: What Commerce operation do you want to perform in this action?
+   - **If MCP server is available**: Use `/search-commerce-docs` to find relevant API patterns
+   - Examples:
+     - Get list of products
+     - Create a product
+     - Update a product
+     - Delete a product
+     - Get customer by ID
+     - Create an order
+     - Update order status
+     - Get categories
+     - Custom REST API call
+   - Provide a brief description of what the operation should do
+   - Note: The MCP server can help identify the correct REST endpoint and parameters
+
+   **This operation logic will be added to the selected action**
+
+## Step 3: Confirm Implementation Details
+
+After receiving answers to ALL questions, present a comprehensive summary and **wait for user confirmation** before proceeding to Step 4:
+
+---
+
+### 📋 Adobe Commerce Client Configuration Summary
+
+**Implementation Approach:** [Centralized Client Builder (Recommended) / Direct Connection in Action]
+
+**Connection Method:** [OAuth 1.0a / IMS / Basic Auth]
+
+**Basic Configuration:**
+
+- **Language:** [TypeScript/JavaScript] (auto-detected from project)
+- **Selected Action:** `[action-name]`
+- **Action Path:** `[path to action file]`
+
+[If Centralized Client Builder:]
+
+**Client Builder:**
+
+- **Location:** [Automatically determined]
+  - If ONLY root application exists: `lib/adobe-commerce/client-builder/index.[js/ts]`
+  - If ONLY extension point exists: `[extension-path]/lib/adobe-commerce/client-builder/index.[js/ts]`
+  - If BOTH root and extension exist: `lib/adobe-commerce/client-builder/index.[js/ts]` (in root, reusable by both)
+- **Status:** [Already exists - will reuse / Will create new]
+
+[If Direct Connection:]
+
+**Integration:** Direct connection and client initialization in action (no shared client builder)
+
+**Commerce Operation:**
+
+- **Description:** [what the operation does]
+- **REST Endpoint:** [If found via MCP: show endpoint, method, parameters]
+
+**Environment Variables:**
+
+[If OAuth 1.0a Connection:]
+
+```bash
+# Adobe Commerce REST API Configuration (OAuth 1.0a)
+# COMMERCE_BASE_URL is the store root — do NOT include /rest or /V1
+COMMERCE_BASE_URL=https://your-commerce-store.com
+COMMERCE_CONSUMER_KEY=
+COMMERCE_CONSUMER_SECRET=
+COMMERCE_ACCESS_TOKEN=
+COMMERCE_ACCESS_TOKEN_SECRET=
+```
+
+📍 **Source:** Commerce Admin > System > Extensions > Integrations
+
+[If IMS Connection:]
+
+```bash
+# Adobe Commerce REST API Configuration (IMS)
+# COMMERCE_BASE_URL is the store root — do NOT include /rest or /V1
+COMMERCE_BASE_URL=https://your-commerce-cloud.adobe.com
+IMS_CLIENT_ID=
+IMS_CLIENT_SECRET=
+IMS_TECHNICAL_ACCOUNT_ID=
+IMS_TECHNICAL_ACCOUNT_EMAIL=
+IMS_ORG_ID=
+IMS_SCOPES=openid,AdobeID,read_organizations
+```
+
+📍 **Source:** Adobe Developer Console
+
+[If Basic Auth Connection:]
+
+```bash
+# Adobe Commerce REST API Configuration (Basic Auth)
+# COMMERCE_BASE_URL is the store root — do NOT include /rest or /V1
+COMMERCE_BASE_URL=https://your-commerce-store.com
+COMMERCE_USERNAME=
+COMMERCE_PASSWORD=
+```
+
+⚠️ **Warning:** Basic Auth is NOT recommended for production (security risk)
+
+---
+
+### ✅ What Will Be Created
+
+[If Centralized Client Builder Approach:]
+
+[If client builder does NOT exist:]
+
+**1. Client Builder (NEW)**
+
+- 📄 Create `lib/adobe-commerce/client-builder/index.[js/ts]` (based on detected language)
+- Implement `AdobeCommerceClientBuilder` class:
+  - Singleton pattern for reusable client instance
+  - `getClient()` method returning configured AdobeCommerceClient
+  - [Connection method] initialization (Oauth1aConnection / ImsConnection / BasicAuthConnection)
+  - Environment variable validation
+  - Error handling for connection failures
+
+[If client builder already exists:]
+
+**1. Client Builder (EXISTING)**
+
+- ✅ Reuse existing `AdobeCommerceClientBuilder`
+- No changes to client builder
+
+**2. Action Integration**
+
+- ✏️ Update `[action-path]/index.[js/ts]`
+  - Import `AdobeCommerceClientBuilder` from `lib/adobe-commerce/client-builder`
+  - Use `getClient()` method to get Commerce client instance
+  - Add Commerce API operation logic for [operation description]
+  - Add structured logging for Commerce API calls
+  - Add error handling for API failures
+
+**3. Environment Variables**
+
+- ✏️ Update project root `.env` file with placeholder environment variables (if not already present)
+- If `.env` doesn't exist, create it in the project root directory
+
+**Files to Create/Modify:**
+
+[If client builder does NOT exist:]
+
+- 📄 `lib/adobe-commerce/client-builder/index.[js/ts]` - NEW client builder
+
+[Always:]
+
+- ✏️ `[action-path]/index.[js/ts]` - Add Commerce API integration
+- 📄/✏️ `.env` (project root) - Create or update with environment variable placeholders
+
+---
+
+[If Direct Connection Approach:]
+
+**1. Action Implementation**
+
+- ✏️ Update `[action-path]/index.[js/ts]`
+  - Import `AdobeCommerceClient` and connection class from `@adobe-commerce/aio-toolkit`
+  - Create connection instance ([Oauth1aConnection / ImsConnection / BasicAuthConnection])
+  - Initialize `AdobeCommerceClient` with connection
+  - Add Commerce API operation logic for [operation description]
+  - Add structured logging for Commerce API calls
+  - Add error handling for API and connection failures
+  - Add environment variable validation
+
+**2. Environment Variables**
+
+- ✏️ Update project root `.env` file with placeholder environment variables (if not already present)
+- If `.env` doesn't exist, create it in the project root directory
+
+**Files to Create/Modify:**
+
+- ✏️ `[action-path]/index.[js/ts]` - Add direct Commerce API integration
+- 📄/✏️ `.env` (project root) - Create or update with environment variable placeholders
+
+---
+
+**Should I proceed with this implementation?**
+
+## Step 4: Generate Implementation
+
+Once confirmed, follow the implementation path based on the chosen approach:
+
+---
+
+### Path A: Centralized Client Builder Approach (Recommended)
+
+#### Step 4.1: Check for Existing Client Builder
+
+1. Check if `lib/adobe-commerce/client-builder/index.[js/ts]` exists in root or extension
+2. If exists: Skip to Step 4.3 (Action Integration)
+3. If NOT exists: Continue to Step 4.2
+
+#### Step 4.2: Create AdobeCommerceClientBuilder (if not exists)
+
+**Directory Structure:**
+
+```
+lib/
+└── adobe-commerce/
+    └── client-builder/
+        └── index.[js/ts]  # Extension based on auto-detected language
+```
+
+Create the centralized client builder class that will be reused across multiple actions.
+
+**Note**: Use the language detected in Step 1 (TypeScript or JavaScript) for all code generation.
+
+##### OAuth 1.0a Client Builder
+
+**JavaScript Example:**
+
+```javascript
+/*
+ * <license header>
+ */
+
+const { Oauth1aConnection, AdobeCommerceClient } = require('@adobe-commerce/aio-toolkit');
+
+/**
+ * Centralized Adobe Commerce Client Builder (OAuth 1.0a)
+ *
+ * This class implements a singleton pattern to create and reuse
+ * a single AdobeCommerceClient instance across multiple action invocations.
+ */
+class AdobeCommerceClientBuilder {
+  // Commerce connection credentials
+  commerceBaseUrl = null;
+  commerceConsumerKey = null;
+  commerceConsumerSecret = null;
+  commerceAccessToken = null;
+  commerceAccessTokenSecret = null;
+
+  // Singleton client instance (reused across calls)
+  client = null;
+
+  /**
+   * Initialize the client builder with OAuth 1.0a credentials
+   *
+   * @param {string} commerceBaseUrl - Commerce store root URL (e.g., https://your-store.com) — do NOT include /rest or /V1
+   * @param {string} commerceConsumerKey - OAuth consumer key from Commerce Admin
+   * @param {string} commerceConsumerSecret - OAuth consumer secret from Commerce Admin
+   * @param {string} commerceAccessToken - OAuth access token from Commerce Admin
+   * @param {string} commerceAccessTokenSecret - OAuth access token secret from Commerce Admin
+   */
+  constructor(
+    commerceBaseUrl,
+    commerceConsumerKey,
+    commerceConsumerSecret,
+    commerceAccessToken,
+    commerceAccessTokenSecret
+  ) {
+    this.commerceBaseUrl = commerceBaseUrl;
+    this.commerceConsumerKey = commerceConsumerKey;
+    this.commerceConsumerSecret = commerceConsumerSecret;
+    this.commerceAccessToken = commerceAccessToken;
+    this.commerceAccessTokenSecret = commerceAccessTokenSecret;
+    this.client = null;
+  }
+
+  /**
+   * Get or create the Commerce client instance
+   *
+   * Returns the cached client if it exists, otherwise creates a new one.
+   * This implements the singleton pattern to avoid recreating the client on every call.
+   *
+   * @returns {AdobeCommerceClient} Configured Commerce API client
+   */
+  getClient() {
+    // Return cached client if already created (singleton pattern)
+    if (this.client) {
+      return this.client;
+    }
+
+    // Create OAuth 1.0a connection
+    const connection = new Oauth1aConnection(
+      this.commerceConsumerKey,
+      this.commerceConsumerSecret,
+      this.commerceAccessToken,
+      this.commerceAccessTokenSecret
+    );
+
+    // Pass logger to the client so HTTP-level debug logs flow into telemetry automatically
+    this.client = new AdobeCommerceClient(this.commerceBaseUrl, connection, this.params.logger || null);
+    return this.client;
+  }
+}
+
+module.exports = AdobeCommerceClientBuilder;
+```
+
+**TypeScript Example:** Same as JavaScript with type annotations:
+
+- Add `private` to all properties
+- Add types to constructor parameters
+- Add return type `: AdobeCommerceClient` to `getClient()`
+- Use `export default` instead of `module.exports`
+
+##### IMS Connection Client Builder
+
+**JavaScript Example:**
+
+```javascript
+/*
+ * <license header>
+ */
+
+const { ImsConnection, AdobeCommerceClient, AdobeAuth } = require('@adobe-commerce/aio-toolkit');
+
+/**
+ * Centralized Adobe Commerce Client Builder (IMS Connection)
+ *
+ * This class implements a singleton pattern to create and reuse
+ * a single AdobeCommerceClient instance across multiple action invocations.
+ * Uses Adobe Identity Management Services (IMS) for authentication.
+ */
+class AdobeCommerceClientBuilder {
+  // Commerce base URL
+  commerceBaseUrl = null;
+
+  // IMS credentials for authentication
+  imsClientId = null;
+  imsClientSecret = null;
+  imsTechnicalAccountId = null;
+  imsTechnicalAccountEmail = null;
+  imsOrgId = null;
+  imsScopes = null;
+
+  // Singleton client instance (reused across calls)
+  client = null;
+
+  /**
+   * Initialize the client builder with IMS credentials
+   *
+   * @param {string} commerceBaseUrl - Commerce store root URL (e.g., https://your-store.com) — do NOT include /rest or /V1
+   * @param {string} imsClientId - IMS client ID from Adobe Developer Console
+   * @param {string} imsClientSecret - IMS client secret from Adobe Developer Console
+   * @param {string} imsTechnicalAccountId - IMS technical account ID
+   * @param {string} imsTechnicalAccountEmail - IMS technical account email
+   * @param {string} imsOrgId - IMS organization ID
+   * @param {string} imsScopes - Comma-separated list of IMS scopes
+   */
+  constructor(
+    commerceBaseUrl,
+    imsClientId,
+    imsClientSecret,
+    imsTechnicalAccountId,
+    imsTechnicalAccountEmail,
+    imsOrgId,
+    imsScopes
+  ) {
+    this.commerceBaseUrl = commerceBaseUrl;
+    this.imsClientId = imsClientId;
+    this.imsClientSecret = imsClientSecret;
+    this.imsTechnicalAccountId = imsTechnicalAccountId;
+    this.imsTechnicalAccountEmail = imsTechnicalAccountEmail;
+    this.imsOrgId = imsOrgId;
+    this.imsScopes = imsScopes;
+    this.client = null;
+  }
+
+  /**
+   * Get or create the Commerce client instance
+   *
+   * Returns the cached client if it exists, otherwise creates a new one.
+   * This implements the singleton pattern to avoid recreating the client on every call.
+   *
+   * Note: IMS tokens are fetched fresh on each getClient() call to ensure validity.
+   *
+   * @returns {Promise<AdobeCommerceClient>} Configured Commerce API client
+   */
+  async getClient() {
+    // Return cached client if already created (singleton pattern)
+    if (this.client) {
+      return this.client;
+    }
+
+    // Get IMS access token using Adobe Auth
+    const token = await AdobeAuth.getToken(
+      this.imsClientId,
+      this.imsClientSecret,
+      this.imsTechnicalAccountId,
+      this.imsTechnicalAccountEmail,
+      this.imsOrgId,
+      this.imsScopes.split(',')
+    );
+
+    // Create IMS connection with the token
+    const connection = new ImsConnection(token);
+
+    // Create and cache the Commerce client
+    this.client = new AdobeCommerceClient(this.commerceBaseUrl, connection);
+    return this.client;
+  }
+}
+
+module.exports = AdobeCommerceClientBuilder;
+```
+
+**TypeScript Example:** Same as JavaScript with type annotations:
+
+- Add `private` to all properties
+- Add types to constructor parameters (7 IMS params)
+- Add return type `: Promise<AdobeCommerceClient>` to `getClient()`
+- Use `export default` instead of `module.exports`
+
+##### Basic Auth Connection Client Builder
+
+**JavaScript Example:**
+
+```javascript
+/*
+ * <license header>
+ */
+
+const { BasicAuthConnection, AdobeCommerceClient } = require('@adobe-commerce/aio-toolkit');
+
+/**
+ * Centralized Adobe Commerce Client Builder (Basic Auth)
+ *
+ * This class implements a singleton pattern to create and reuse
+ * a single AdobeCommerceClient instance across multiple action invocations.
+ * Uses HTTP Basic Authentication (username/password).
+ *
+ * ⚠️ SECURITY WARNING: Basic Auth is less secure than OAuth or IMS.
+ * Only use for development/testing or when other methods are not available.
+ */
+class AdobeCommerceClientBuilder {
+  // Commerce connection credentials
+  commerceBaseUrl = null;
+  commerceUsername = null;
+  commercePassword = null;
+
+  // Singleton client instance (reused across calls)
+  client = null;
+
+  /**
+   * Initialize the client builder with Basic Auth credentials
+   *
+   * @param {string} commerceBaseUrl - Commerce store root URL (e.g., https://your-store.com)
+   * @param {string} commerceUsername - Commerce admin username
+   * @param {string} commercePassword - Commerce admin password
+   */
+  constructor(commerceBaseUrl, commerceUsername, commercePassword) {
+    this.commerceBaseUrl = commerceBaseUrl;
+    this.commerceUsername = commerceUsername;
+    this.commercePassword = commercePassword;
+    this.client = null;
+  }
+
+  /**
+   * Get or create the Commerce client instance
+   *
+   * Returns the cached client if it exists, otherwise creates a new one.
+   * This implements the singleton pattern to avoid recreating the client on every call.
+   *
+   * ⚠️ SECURITY NOTE: Credentials are sent with each request using HTTP Basic Auth.
+   *
+   * @returns {AdobeCommerceClient} Configured Commerce API client
+   */
+  getClient() {
+    // Return cached client if already created (singleton pattern)
+    if (this.client) {
+      return this.client;
+    }
+
+    // BasicAuthConnection requires baseUrl as its first argument so it can fetch the admin token
+    const connection = new BasicAuthConnection(this.commerceBaseUrl, this.commerceUsername, this.commercePassword);
+
+    // Create and cache the Commerce client
+    this.client = new AdobeCommerceClient(this.commerceBaseUrl, connection);
+    return this.client;
+  }
+}
+
+module.exports = AdobeCommerceClientBuilder;
+```
+
+**TypeScript Example:** Same as JavaScript with type annotations:
+
+- Add `private` to all properties
+- Add types to constructor parameters (3 Basic Auth params)
+- Add return type `: AdobeCommerceClient` to `getClient()`
+- Use `export default` instead of `module.exports`
+
+#### Step 4.2b: Create Entity Class (Recommended for Domain-Specific APIs)
+
+For each Commerce domain area (e.g. `Countries`, `Products`, `Orders`), create a dedicated entity class in `lib/adobe-commerce/[entity-name]/`. This keeps the action thin, encapsulates the API calls and lazy init, and makes the class reusable across multiple actions.
+
+```
+lib/
+└── adobe-commerce/
+    ├── client-builder/
+    │   └── index.[js/ts]        ← wraps AdobeCommerceClient construction
+    └── [entity-name]/
+        └── index.[js/ts]        ← entity class (API calls + lazy client init)
+```
+
+**JavaScript entity class template:**
+
+```javascript
+// lib/adobe-commerce/[entity-name]/index.js
+const { AdobeCommerceClientBuilder } = require('@lib/adobe-commerce/client-builder');
+
+class [EntityName] {
+  constructor(params) {
+    this.params = params;
+    this.client = null;
+    this.clientInitPromise = null;
+  }
+
+  // Lazy init with concurrent-call guard — both callers share the same promise
+  async getClient() {
+    if (this.client) return this.client;
+    if (this.clientInitPromise) return this.clientInitPromise;
+
+    this.clientInitPromise = AdobeCommerceClientBuilder.generate({
+      commerceBaseUrl:          this.params.COMMERCE_BASE_URL,
+      oauthConsumerKey:         this.params.COMMERCE_CONSUMER_KEY,
+      oauthConsumerSecret:      this.params.COMMERCE_CONSUMER_SECRET,
+      oauthAccessToken:         this.params.COMMERCE_ACCESS_TOKEN,
+      oauthAccessTokenSecret:   this.params.COMMERCE_ACCESS_TOKEN_SECRET,
+      logger:                   this.params.logger || null,
+    });
+
+    this.client = await this.clientInitPromise;
+    this.clientInitPromise = null;
+    return this.client;
+  }
+
+  async fetch[EntityName]() {
+    const client = await this.getClient();
+    const result = await client.get('rest/V1/[endpoint]');
+
+    if (!result.success) {
+      return result;
+    }
+
+    // Transform result.message as needed
+    return { success: true, data: result.message };
+  }
+}
+
+module.exports = { [EntityName] };
+```
+
+**In the action — keeps the action thin:**
+
+```javascript
+const { [EntityName] } = require('@lib/adobe-commerce/[entity-name]');
+
+// Inside handler:
+const entityClient = new [EntityName](params);
+const result = await entityClient.fetch[EntityName]();
+
+if (!result.success) {
+  return RuntimeActionResponse.error(result.statusCode, result.message);
+}
+return RuntimeActionResponse.success(result.data);
+```
+
+> The entity class pattern is optional but strongly recommended when an action calls multiple endpoints on the same domain, or when the same domain is used across multiple actions.
+
+---
+
+#### Step 4.3: Integrate Commerce Client into Existing Action
+
+**Update the selected action to use the client builder:**
+
+Add the following code to your existing action to use the centralized client builder.
+
+##### For OAuth 1.0a Connection
+
+**JavaScript Example:**
+
+```javascript
+// Import the centralized client builder
+const AdobeCommerceClientBuilder = require('../../lib/adobe-commerce/client-builder');
+
+// Inside your action logic (works in any action type: RuntimeAction, WebhookAction, EventConsumerAction, GraphQL, etc.)
+
+// Step 1: Create client builder instance with OAuth 1.0a credentials from environment variables
+const clientBuilder = new AdobeCommerceClientBuilder(
+  params.COMMERCE_BASE_URL,
+  params.COMMERCE_CONSUMER_KEY,
+  params.COMMERCE_CONSUMER_SECRET,
+  params.COMMERCE_ACCESS_TOKEN,
+  params.COMMERCE_ACCESS_TOKEN_SECRET
+);
+
+// Step 2: Get the Commerce client (cached after first call)
+const client = clientBuilder.getClient();
+
+// Step 3: Make API calls to Commerce
+const products = await client.get('products');
+const newProduct = await client.post('products', {}, productData);
+```
+
+**TypeScript:** Same as JavaScript, use `import` instead of `require`
+
+##### For IMS Connection
+
+**JavaScript Example:**
+
+```javascript
+// Import the centralized client builder
+const AdobeCommerceClientBuilder = require('../../lib/adobe-commerce/client-builder');
+
+// Inside your action logic (works in any action type: RuntimeAction, WebhookAction, EventConsumerAction, GraphQL, etc.)
+
+// Step 1: Create client builder instance with IMS credentials from environment variables
+const clientBuilder = new AdobeCommerceClientBuilder(
+  params.COMMERCE_BASE_URL,
+  params.IMS_CLIENT_ID,
+  params.IMS_CLIENT_SECRET,
+  params.IMS_TECHNICAL_ACCOUNT_ID,
+  params.IMS_TECHNICAL_ACCOUNT_EMAIL,
+  params.IMS_ORG_ID,
+  params.IMS_SCOPES // Comma-separated scopes
+);
+
+// Step 2: Get the Commerce client (cached after first call)
+// Note: IMS connection is async due to token fetching
+const client = await clientBuilder.getClient();
+
+// Step 3: Make API calls to Commerce
+const customers = await client.get('customers/search');
+const newCustomer = await client.post('customers', {}, customerData);
+```
+
+**TypeScript:** Same as JavaScript, use `import` instead of `require`
+
+##### For Basic Auth Connection
+
+**JavaScript Example:**
+
+```javascript
+// Import the centralized client builder
+const AdobeCommerceClientBuilder = require('../../lib/adobe-commerce/client-builder');
+
+// Inside your action logic (works in any action type: RuntimeAction, WebhookAction, EventConsumerAction, GraphQL, etc.)
+
+// Step 1: Create client builder instance with Basic Auth credentials from environment variables
+// ⚠️ WARNING: Basic Auth is less secure - use only for development/testing
+const clientBuilder = new AdobeCommerceClientBuilder(
+  params.COMMERCE_BASE_URL,
+  params.COMMERCE_USERNAME,
+  params.COMMERCE_PASSWORD
+);
+
+// Step 2: Get the Commerce client (cached after first call)
+const client = clientBuilder.getClient();
+
+// Step 3: Make API calls to Commerce
+const orders = await client.get('orders');
+const newOrder = await client.post('orders', {}, orderData);
+```
+
+**TypeScript:** Same as JavaScript, use `import` instead of `require`
+
+**Benefits of Centralized Client Builder:**
+
+- ✅ **Singleton Pattern**: Client instance is reused, not recreated on every call
+- ✅ **Consistent Configuration**: All actions use the same client configuration
+- ✅ **Easy Maintenance**: Update connection logic in one place
+- ✅ **Reusable**: Can be used across RuntimeAction, WebhookAction, GraphQL resolvers, EventConsumerAction, etc.
+
+#### Step 4.4: Add Environment Variables
+
+**Update project root `.env` file with connection credentials:**
+
+1. **Check for `.env` file**: Look for `.env` file in the project root directory (workspace root)
+2. **Create if missing**: If `.env` doesn't exist, create it in the project root
+3. **Add variables**: Add the appropriate environment variables based on connection method
+
+The environment variables are the same as for Direct Connection. See **Path B: Step 4.2** for detailed instructions on setting up environment variables for each connection method (OAuth 1.0a, IMS, or Basic Auth).
+
+---
+
+### Path B: Direct Connection Approach
+
+#### Step 4.1: Add Direct Commerce Client to Existing Action
+
+**Update the selected action with direct connection and client:**
+
+These implementations can be used in **any action type**: RuntimeAction, WebhookAction, GraphQL resolvers, EventConsumerAction, or OpenwhiskAction.
+
+##### Template: OAuth 1.0a Connection (Direct Implementation)
+
+**JavaScript Example:**
+
+```javascript
+const { AdobeCommerceClient, Oauth1aConnection } = require('@adobe-commerce/aio-toolkit');
+
+// Create OAuth 1.0a connection
+const connection = new Oauth1aConnection(
+  params.COMMERCE_CONSUMER_KEY,
+  params.COMMERCE_CONSUMER_SECRET,
+  params.COMMERCE_ACCESS_TOKEN,
+  params.COMMERCE_ACCESS_TOKEN_SECRET
+);
+
+// Create Commerce client
+const client = new AdobeCommerceClient(params.COMMERCE_BASE_URL, connection);
+
+// Make API calls
+// GET request
+const products = await client.get('products');
+const product = await client.get('products/SKU123');
+
+// POST request
+const newProduct = await client.post(
+  'products',
+  {},
+  {
+    product: {
+      sku: 'NEW-SKU',
+      name: 'New Product',
+      price: 99.99,
+      // ... other product data
+    },
+  }
+);
+
+// PUT request
+const updatedProduct = await client.put(
+  'products/SKU123',
+  {},
+  {
+    product: {
+      name: 'Updated Product Name',
+      price: 89.99,
+    },
+  }
+);
+
+// DELETE request
+await client.delete('products/SKU123');
+```
+
+**TypeScript:** Same as JavaScript with type safety:
+
+- Use `import` instead of `require`
+- Define interfaces for entities (e.g., `interface Product { sku: string; name: string; price: number; }`)
+- Use generics: `client.get<Product[]>('products')`, `client.post<Product>(...)`
+
+##### Template: IMS Connection (Direct Implementation)
+
+**JavaScript Example:**
+
+```javascript
+const { AdobeCommerceClient, ImsConnection, AdobeAuth } = require('@adobe-commerce/aio-toolkit');
+
+// Get IMS token
+const token = await AdobeAuth.getToken(
+  params.IMS_CLIENT_ID,
+  params.IMS_CLIENT_SECRET,
+  params.IMS_TECHNICAL_ACCOUNT_ID,
+  params.IMS_TECHNICAL_ACCOUNT_EMAIL,
+  params.IMS_ORG_ID,
+  params.IMS_SCOPES.split(',')
+);
+
+// Create IMS connection
+const connection = new ImsConnection(token);
+
+// Create Commerce client
+const client = new AdobeCommerceClient(params.COMMERCE_BASE_URL, connection);
+
+// Make API calls
+// GET request
+const customers = await client.get('customers/search', { searchCriteria: {} });
+const customer = await client.get('customers/123');
+
+// POST request
+const newCustomer = await client.post(
+  'customers',
+  {},
+  {
+    customer: {
+      email: 'customer@example.com',
+      firstname: 'John',
+      lastname: 'Doe',
+    },
+  }
+);
+
+// PUT request
+const updatedCustomer = await client.put(
+  'customers/123',
+  {},
+  {
+    customer: {
+      firstname: 'Jane',
+    },
+  }
+);
+
+// DELETE request
+await client.delete('customers/123');
+```
+
+**TypeScript:** Same as JavaScript with type safety (define `interface Customer` and use generics)
+
+##### Template: Basic Auth Connection (Direct Implementation)
+
+**JavaScript Example:**
+
+```javascript
+const { AdobeCommerceClient, BasicAuthConnection } = require('@adobe-commerce/aio-toolkit');
+
+// BasicAuthConnection requires baseUrl as first argument — it uses it to fetch the admin token
+const connection = new BasicAuthConnection(params.COMMERCE_BASE_URL, params.COMMERCE_USERNAME, params.COMMERCE_PASSWORD);
+
+// Create Commerce client
+const client = new AdobeCommerceClient(params.COMMERCE_BASE_URL, connection);
+
+// Make API calls
+// GET request
+const orders = await client.get('orders');
+const order = await client.get('orders/123');
+
+// POST request
+const newOrder = await client.post(
+  'orders',
+  {},
+  {
+    entity: {
+      customer_email: 'customer@example.com',
+      items: [
+        {
+          sku: 'PRODUCT-SKU',
+          qty: 1,
+          price: 99.99,
+        },
+      ],
+    },
+  }
+);
+
+// PUT request
+const updatedOrder = await client.put(
+  'orders/123',
+  {},
+  {
+    entity: {
+      status: 'processing',
+    },
+  }
+);
+```
+
+**TypeScript:** Same as JavaScript with type safety (define `interface Order` and use generics)
+
+**⚠️ Security Warning:** Basic Auth is NOT recommended for production environments. Use OAuth 1.0a or IMS for production deployments.
+
+#### Step 4.2: Add Environment Variables
+
+**Update project root `.env` file with connection credentials:**
+
+1. **Locate `.env` file**: Find the `.env` file in the project root directory (workspace root)
+2. **Create if missing**: If `.env` doesn't exist, create it in the project root directory
+3. **Add variables**: Add the appropriate environment variables based on the connection method chosen
+
+**Important**: Always use the project's `.env` file located at the workspace root, NOT a global `.env` file.
+
+##### For OAuth 1.0a Connection:
+
+**Add to project root `.env` file:**
+
+```bash
+# Adobe Commerce REST API Configuration (OAuth 1.0a)
+# Store root URL — do NOT include /rest or /V1 here
+COMMERCE_BASE_URL=https://your-commerce-store.com
+COMMERCE_CONSUMER_KEY=
+COMMERCE_CONSUMER_SECRET=
+COMMERCE_ACCESS_TOKEN=
+COMMERCE_ACCESS_TOKEN_SECRET=
+```
+
+**How to get credentials:**
+
+1. Log in to Commerce Admin
+2. Navigate to **System** > **Extensions** > **Integrations**
+3. Create a new integration or select an existing one
+4. Copy the **Consumer Key**, **Consumer Secret**, **Access Token**, and **Access Token Secret**
+5. Paste them into your project root `.env` file
+
+##### For IMS Connection:
+
+**Add to project root `.env` file:**
+
+```bash
+# Adobe Commerce REST API Configuration (IMS)
+# Store root URL — do NOT include /rest or /V1 here
+COMMERCE_BASE_URL=https://your-commerce-cloud.adobe.com
+IMS_CLIENT_ID=
+IMS_CLIENT_SECRET=
+IMS_TECHNICAL_ACCOUNT_ID=
+IMS_TECHNICAL_ACCOUNT_EMAIL=
+IMS_ORG_ID=
+IMS_SCOPES=openid,AdobeID,read_organizations
+```
+
+**How to get credentials:**
+
+1. Log in to [Adobe Developer Console](https://developer.adobe.com/console)
+2. Select your project or create a new one
+3. Add Adobe Commerce API to your project
+4. Generate or use existing Service Account (JWT) credentials
+5. Copy the credentials and paste them into your project root `.env` file
+6. Adjust `IMS_SCOPES` as needed (comma-separated, no spaces)
+
+##### For Basic Auth Connection:
+
+**Add to project root `.env` file:**
+
+```bash
+# Adobe Commerce REST API Configuration (Basic Auth)
+# Store root URL — do NOT include /rest or /V1 here
+COMMERCE_BASE_URL=https://your-commerce-store.com
+COMMERCE_USERNAME=
+COMMERCE_PASSWORD=
+```
+
+**How to get credentials:**
+
+1. Use Commerce admin username and password
+2. OR create a dedicated API user in Commerce Admin
+3. Paste credentials into your project root `.env` file
+
+**⚠️ Security Warning:** Basic Auth is NOT recommended for production environments. Use OAuth 1.0a or IMS for production deployments.
+
+**Important Notes:**
+
+- The `.env` file should be in your project root directory (workspace root)
+- Never commit the `.env` file to version control
+- Ensure `.env` is in your `.gitignore` file
+- Keep credentials secure and rotate them regularly
+- Use different credentials for different environments (dev, staging, production)
+
+## Step 5: Configuration and Additional Recommendations
+
+### A. Action Configuration
+
+Update action configuration to include Commerce credentials as inputs:
+
+```yaml
+inputs:
+  LOG_LEVEL: debug
+  COMMERCE_BASE_URL: $COMMERCE_BASE_URL
+  # For OAuth: Add COMMERCE_CONSUMER_KEY, COMMERCE_CONSUMER_SECRET, COMMERCE_ACCESS_TOKEN, COMMERCE_ACCESS_TOKEN_SECRET
+  # For IMS: Add IMS_CLIENT_ID, IMS_CLIENT_SECRET, IMS_TECHNICAL_ACCOUNT_ID, IMS_TECHNICAL_ACCOUNT_EMAIL, IMS_ORG_ID, IMS_SCOPES
+  # For Basic Auth: Add COMMERCE_USERNAME, COMMERCE_PASSWORD
+```
+
+### B. Testing & Error Handling
+
+1. **Testing**: Create unit tests (`test/[action-name].test.[js/ts]`) and E2E tests (`e2e/[action-name].e2e.test.[js/ts]`)
+2. **Error Handling**: Wrap API calls in try-catch, check `error.response` for Commerce errors, use `RuntimeActionResponse.error()`
+3. **Local Testing**: Use `aio app dev` and MCP server (`/search-commerce-docs`) for API pattern verification
+
+### C. Best Practices
+
+- **Documentation**: Document operations, env vars, API responses, and error scenarios
+- **Performance**: Centralized Client Builder uses singleton pattern (better for multiple actions)
+- **Telemetry**: Recommend enabling New Relic telemetry for Commerce API observability
+- **Security**: Never commit `.env`, rotate credentials, use OAuth/IMS for production (not Basic Auth)
+
+## Key Components from @adobe-commerce/aio-toolkit
+
+### AdobeCommerceClient Class
+
+Main class for interacting with Adobe Commerce REST API. **Never throws** — all outcomes are returned as `{ success, ... }` objects.
+
+- **Constructor**: `new AdobeCommerceClient(baseUrl, connection, logger?, httpsOptions?)`
+  - `baseUrl`: Commerce store root URL (e.g. `https://your-store.com`) — **do not include `/rest`**; it is passed as Got's `prefixUrl`
+  - `connection`: Connection instance (`Oauth1aConnection`, `ImsConnection`, or `BasicAuthConnection`)
+  - `logger`: Optional logger instance — pass `ctx.logger` to get automatic HTTP-level debug logs in telemetry
+  - `httpsOptions`: Optional Got `https` options — use `{ rejectUnauthorized: false }` for self-signed certs (never in production)
+
+**URL construction rule**: `baseUrl` + endpoint are concatenated by Got. Do **not** include a leading slash in the endpoint. Query parameters go directly in the endpoint string:
+
+```javascript
+// Correct
+await client.get('rest/V1/products');
+await client.get('rest/V1/orders?searchCriteria[pageSize]=10&searchCriteria[currentPage]=1');
+
+// Wrong — leading slash breaks Got's prefixUrl resolution
+await client.get('/rest/V1/products');
+```
+
+**Response shape** — every method resolves with one of:
+
+```javascript
+// Success
+{ success: true, message: any }       // message = parsed JSON response body
+
+// Failure
+{ success: false, statusCode: number, message: string, body?: any }
+// statusCode 500 for network/DNS failures; HTTP status for 4xx/5xx
+```
+
+Always check `result.success` — never wrap calls in try/catch for HTTP errors.
+
+**Available Methods:**
+
+#### get(endpoint, headers?)
+
+```javascript
+async get(endpoint, headers = {})
+```
+
+- `endpoint`: REST path (e.g. `'rest/V1/products/24'`). Append query string directly here.
+- `headers`: Additional request headers merged on top of client defaults.
+
+```javascript
+const result = await client.get('rest/V1/directory/countries');
+if (result.success) { /* result.message = parsed JSON array */ }
+
+// Query parameters in the endpoint string
+const result = await client.get('rest/V1/products?searchCriteria[pageSize]=10');
+```
+
+#### post(endpoint, headers?, payload?)
+
+```javascript
+async post(endpoint, headers = {}, payload = null)
+```
+
+- `payload`: Serialised as JSON. `Content-Type: application/json` set automatically.
+
+```javascript
+const result = await client.post('rest/V1/products', {}, {
+  product: { sku: 'MY-SKU', name: 'My Product', price: 29.99, status: 1, type_id: 'simple', attribute_set_id: 4 },
+});
+if (!result.success) { /* result.statusCode, result.message, result.body */ }
+```
+
+#### put(endpoint, headers?, payload?)
+
+```javascript
+async put(endpoint, headers = {}, payload = null)
+```
+
+```javascript
+const result = await client.put('rest/V1/products/MY-SKU', {}, {
+  product: { price: 39.99 },
+});
+```
+
+#### delete(endpoint, headers?)
+
+```javascript
+async delete(endpoint, headers = {})
+```
+
+```javascript
+const result = await client.delete('rest/V1/products/MY-SKU');
+if (result.success) { /* result.message = true for Commerce DELETE responses */ }
+```
+
+### Oauth1aConnection Class
+
+OAuth 1.0a authentication for Commerce
+
+- **Purpose**: Establishes connection using OAuth 1.0a credentials
+- **Use Case**: Direct Commerce instance integration (on-premise, self-hosted)
+- **Constructor**: `new Oauth1aConnection(consumerKey, consumerSecret, accessToken, accessTokenSecret)`
+- **Required Credentials**:
+  - `consumerKey`: OAuth consumer key from Commerce Admin
+  - `consumerSecret`: OAuth consumer secret from Commerce Admin
+  - `accessToken`: OAuth access token from Commerce Admin
+  - `accessTokenSecret`: OAuth access token secret from Commerce Admin
+- **How to Get**: Commerce Admin > System > Extensions > Integrations
+- **Security**: OAuth 1.0a is secure for production use
+
+### ImsConnection Class
+
+IMS (Identity Management Services) authentication
+
+- **Purpose**: Sets `Authorization: Bearer <token>` as a static header on the client; same token applied to every request
+- **Use Case**: Adobe Commerce Cloud with Adobe Identity (IMS) enabled
+- **Constructor**: `new ImsConnection(imsToken, logger?)`
+  - `imsToken`: Pre-generated IMS bearer token — **throws** if blank/whitespace
+  - `logger`: Optional logger instance
+- **Security**: Secure for production use
+- **Token refresh**: Entirely the caller's responsibility — `ImsConnection` does not refresh tokens
+
+**Two ways to obtain the token:**
+
+**Option A — `Core.AuthClient.generateAccessToken(params)` (recommended for App Builder actions)**
+
+Uses the action's own injected IMS credentials. Requires `include-ims-credentials: true` in `app.config.yaml`:
+
+```javascript
+const { Core } = require('@adobe/aio-sdk');
+
+const tokenResponse = await Core.AuthClient.generateAccessToken(params);
+const imsToken = tokenResponse && tokenResponse.access_token;
+const connection = new ImsConnection(imsToken, logger);
+```
+
+YAML annotation required:
+```yaml
+annotations:
+  include-ims-credentials: true   # injects IMS credential params automatically
+```
+
+**Option B — `AdobeAuth.getToken()` (Service Account / OAuth S2S)**
+
+Fetches a token using explicit S2S credentials from environment variables:
+
+```javascript
+const { AdobeAuth } = require('@adobe-commerce/aio-toolkit');
+
+const imsToken = await AdobeAuth.getToken(
+  params.IMS_CLIENT_ID,
+  params.IMS_CLIENT_SECRET,
+  params.IMS_TECHNICAL_ACCOUNT_ID,
+  params.IMS_TECHNICAL_ACCOUNT_EMAIL,
+  params.IMS_ORG_ID,
+  params.IMS_SCOPES.split(',')
+);
+const connection = new ImsConnection(imsToken, logger);
+```
+
+### BasicAuthConnection Class
+
+HTTP Basic Authentication for Commerce
+
+- **Purpose**: Exchanges username/password for a bearer token via `POST /rest/V1/integration/admin/token`, then caches the token in Adobe I/O State (1-hour TTL) so subsequent invocations reuse it without another round-trip
+- **Use Case**: Development/testing environments or PaaS instances without an Integration or IMS configured (NOT recommended for production)
+- **Constructor**: `new BasicAuthConnection(baseUrl, username, password, logger?)`
+  - `baseUrl`: Commerce store root URL — **same value as `AdobeCommerceClient` baseUrl**
+  - `username`: Commerce admin username
+  - `password`: Commerce admin password
+  - `logger`: Optional logger instance
+- **How to Get**: Use Commerce admin credentials or create a dedicated API user
+- **Security**: ⚠️ **NOT secure for production** — use OAuth 1.0a or IMS instead
+- **Token caching**: Tokens cached in Adobe I/O State with 1-hour TTL; if State is unavailable (e.g. local dev), a fresh token is fetched every invocation silently
+
+### AdobeAuth Class
+
+Utility class for fetching IMS access tokens
+
+- **Purpose**: Fetches IMS access tokens for ImsConnection
+- **Use Case**: Required when using ImsConnection for Commerce Cloud
+
+#### getToken() Method
+
+Fetch IMS access token using service account credentials
+
+- **Parameters**:
+  - `clientId` (string): IMS client ID
+  - `clientSecret` (string): IMS client secret
+  - `technicalAccountId` (string): IMS technical account ID
+  - `technicalAccountEmail` (string): IMS technical account email
+  - `orgId` (string): IMS organization ID
+  - `scopes` (string[]): Array of IMS scopes (e.g., `['openid', 'AdobeID', 'read_organizations']`)
+- **Returns**: Promise<string> - IMS access token
+- **Example**:
+  ```javascript
+  const token = await AdobeAuth.getToken(
+    params.IMS_CLIENT_ID,
+    params.IMS_CLIENT_SECRET,
+    params.IMS_TECHNICAL_ACCOUNT_ID,
+    params.IMS_TECHNICAL_ACCOUNT_EMAIL,
+    params.IMS_ORG_ID,
+    params.IMS_SCOPES.split(',')
+  );
+  ```
+- **Note**: Tokens are temporary and should be fetched fresh when needed
+
+## Important Notes
+
+1. **Authentication Methods**: OAuth 1.0a (on-premise), IMS (Commerce Cloud), Basic Auth (dev/test only, NOT production)
+
+2. **Credentials Management**: Store in `.env`, add to `.gitignore`, rotate regularly, use different creds per environment
+
+3. **Implementation Approach**:
+   - **Centralized Client Builder (Recommended)**: Singleton pattern, reusable across actions, in `lib/adobe-commerce/client-builder/`
+   - **Direct Connection**: Simpler, for single-action use cases, connection created per invocation
+
+4. **Client Builder Reusability**: If in root `lib/`, usable by both root and extension actions. Only create once, reuse everywhere.
+
+5. **API Usage**: Use REST V1 endpoints (e.g. `rest/V1/products`) — include the full REST path in the endpoint argument, not in `COMMERCE_BASE_URL`. The client **never throws** on HTTP errors — always check `result.success` instead of wrapping calls in try/catch. `result.message` is the parsed JSON body on success; `result.statusCode`, `result.message`, and `result.body` describe the failure.
+5a. **URL construction**: `COMMERCE_BASE_URL` is the store root (e.g. `https://your-store.com`). Do NOT include `/rest` or `/V1` in the base URL. Do NOT use a leading slash in endpoint strings. Query params go directly in the endpoint string: `rest/V1/orders?searchCriteria[pageSize]=10`.
+
+6. **No New Actions Created**: This rule only integrates Commerce API into existing actions. Use "Create Runtime Action" rule first if needed.
+
+7. **MCP Server Integration**: Use `/search-commerce-docs "How to [operation]"` to discover API patterns, endpoints, and parameters
+
+8. **Testing**: Create unit tests (`test/[action-name].test.[js/ts]`), E2E tests (`e2e/[action-name].e2e.test.[js/ts]`), use `aio app dev` locally
+
+9. **Language Auto-Detection**: TypeScript or JavaScript is automatically detected using multiple indicators:
+   - Package dependencies (`typescript`, `ts-loader`, `@types/*`)
+   - Config files (`tsconfig.json`)
+   - Build scripts (TypeScript compilation commands)
+   - Existing `.ts`/`.tsx` files in `actions/`, `src/`, `lib/`
+   - Compiled output paths (`build/` references in config)
+   - **Detection Priority**: If `typescript` + `tsconfig.json` exist OR 2+ indicators found OR `.ts` files exist → TypeScript project
+   - No need to ask developer. TypeScript provides type safety with interfaces (Product, Customer, Order) and generics: `client.get<Product[]>('products')`
+
+10. **Performance**: Centralized Client Builder caches instance (singleton), better for high-frequency/multiple actions. IMS tokens fetched fresh per `getClient()` call. Entity classes add a second lazy-init layer — `clientInitPromise` guard prevents double-init when `getClient()` is called concurrently.
+10a. **Logger threading**: Always pass `ctx.logger` to connections and the client — e.g. `new Oauth1aConnection(..., logger)` and `new AdobeCommerceClient(baseUrl, connection, logger)`. This routes automatic HTTP-level debug logs (request, retry, response) into the action's telemetry pipeline.
+
+11. **Action Configuration**: Add Commerce env vars as action inputs using `$VARIABLE_NAME` syntax in `app.config.yaml` or `ext.config.yaml`
+
+12. **Compatibility**: Works with RuntimeAction, WebhookAction, EventConsumerAction, GraphQL resolvers, OpenwhiskAction (sub-actions and orchestrators). Supports root and extension points.
+
+13. **Telemetry**: Recommend enabling New Relic for Commerce API observability (traces, metrics, logs). Refer to New Relic telemetry setup rule.
+
+14. **Integration with Action Creation Rules**: This rule is designed to work seamlessly with RuntimeAction, WebhookAction, GraphQLAction, EventConsumerAction, and OpenwhiskAction rules. When developers mention Commerce operations during action creation, automatically suggest or trigger this rule for Commerce API integration.
+
+15. **Edge Case - Ambiguous Language Detection**: If language detection is uncertain (e.g., TypeScript configured but no existing TypeScript files):
+
+- **Default to JavaScript** if no `.ts` files exist in `actions/` or `lib/` directories
+- Inform user: "Detected TypeScript setup but no existing TypeScript files. Generating JavaScript code to match existing actions. To use TypeScript, add a `.ts` file first."
+- **Prefer consistency**: Match the language of existing action files in the project
+
+## Integration with Other Rules
+
+**This rule should be referenced in other action creation rules when Commerce operations are mentioned:**
+
+### Trigger Patterns in Other Rules:
+
+When developers mention these phrases during action creation in the "Business Logic" question:
+
+- "Create a product in Commerce"
+- "Get customer from Commerce"
+- "Update order in Commerce"
+- "Call Commerce API"
+- "Fetch products from Commerce"
+- "Sync to Commerce"
+- "Make Commerce API call"
+- "Interact with Commerce"
+- Any phrase containing "Commerce" + "API"/"product"/"order"/"customer"
+
+**Action to take:**
+
+1. Complete the action creation first (in detected language: TypeScript or JavaScript)
+2. Then inform the user: "I see you need to integrate with Commerce API. Let me help you set up the Commerce client integration."
+3. Trigger/reference the "Creating Adobe Commerce Client Operations" rule
+4. This rule will:
+   - Auto-detect language (already done in Step 1)
+   - Use the same language for Commerce client code
+   - Handle connection methods, client builder, and API integration
+
+**Example Flow**:
+
+```
+User: "Create a runtime action that fetches products from Commerce"
+AI: ✓ Detected TypeScript project
+AI: Creating runtime action... [generates .ts file]
+AI: I see you need to integrate with Commerce API. Let me set up the Commerce client.
+AI: [Creates TypeScript Commerce client builder in lib/adobe-commerce/client-builder/index.ts]
+AI: [Integrates Commerce API calls into the action]
+```
+
+### Recommended Updates to Action Creation Rules:
+
+Add this note to the "Business Logic" question in:
+
+- `aio-toolkit-create-runtime-action.md`
+- `aio-toolkit-create-webhook-action.md`
+- `aio-toolkit-create-graphql-action.md`
+- `aio-toolkit-create-event-consumer-action.md`
+- `aio-toolkit-create-openwhisk-action.md`
+
+**Note to add:**
+
+```
+**If business logic requires Commerce API operations**:
+- Complete this action creation first
+- Then use "Creating Adobe Commerce Client Operations" rule to integrate Commerce API
+- That rule handles connection setup, client builder, and API calls
+```
+
+## Related Rules
+
+- **"Using AdobeAuth"** (`aio-toolkit-use-adobe-auth.mdc`) — primary reference for `AdobeAuth.getToken()` usage, caching patterns, scope selection, and error handling when using `ImsConnection` with explicit S2S credentials

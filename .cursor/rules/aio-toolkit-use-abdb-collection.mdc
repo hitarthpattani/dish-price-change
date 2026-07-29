@@ -1,0 +1,610 @@
+---
+description: Adding App Builder Data (ABDB) collection schema to Adobe I/O Runtime actions using @adobe-commerce/aio-toolkit
+globs: '**/{actions,lib}/**/*.{ts,js}'
+alwaysApply: false
+---
+
+# Using AbdbCollection
+
+## Trigger Conditions
+
+This rule applies when the user requests to add MongoDB-backed database storage to an action using any of these phrases:
+
+- "Use App Builder Data"
+- "Use ABDB"
+- "MongoDB-backed storage"
+- "Define collection schema"
+- "Database in App Builder"
+- "Store data in MongoDB"
+- "Create a collection for [entity]"
+- "Persist data with ABDB"
+- "App Builder Data Services"
+- "Custom database query"
+- "Define database schema for [entity]"
+
+**Important**: This rule covers **collection schema creation** and direct `run()` usage for custom queries. For full CRUD operations (insert, find, update, delete) via `AbdbRepository`, use the "Using AbdbRepository" rule after this one.
+
+**Integration with Other Action Creation Rules:**
+
+When using action creation rules (RuntimeAction, WebhookAction, EventConsumerAction, GraphQlAction, OpenwhiskAction) and the developer mentions persisting data in a managed database:
+
+- **Automatically trigger this rule** after the action is created
+- Examples: "save records to the database", "query MongoDB", "use App Builder Data", "persist with ABDB"
+- This rule handles creating the collection class, wiring IMS credentials, configuring the YAML, and integrating `run()` into the action
+
+**If you need to create a new action first:**
+
+- Use the appropriate action creation command first
+- Then this rule will add the ABDB collection to that action
+
+---
+
+## Step 1: Verify Prerequisites
+
+Before proceeding, verify:
+
+1. **Toolkit installed**: Check `@adobe-commerce/aio-toolkit` in `package.json` dependencies
+   - If NOT installed: `npm install @adobe-commerce/aio-toolkit`
+
+2. **Peer dependency — aio-lib-db**: Check `@adobe/aio-lib-db` in `package.json` dependencies
+   - **Required**: `AbdbCollection` uses this internally to connect to the App Builder Data database
+   - If NOT installed: `npm install @adobe/aio-lib-db`
+   - Minimum version: `>= 1.0.0`
+
+3. **AIO SDK installed**: Check `@adobe/aio-sdk` in `package.json` dependencies
+   - Required for `Core.AuthClient.generateAccessToken(params)` to obtain an IMS access token
+   - If NOT installed: `npm install @adobe/aio-sdk`
+
+4. **Detect Language (TypeScript vs JavaScript)**:
+
+   **Check for TypeScript indicators (check ALL of these)**:
+   1. **Package Dependencies**: Look for `typescript` in `package.json` dependencies or devDependencies
+   2. **Config File**: Check if `tsconfig.json` exists in project root
+   3. **TypeScript Loaders**: Look for `ts-loader`, `ts-node`, or `@types/*` packages in `package.json`
+   4. **Existing Files**: Check for `.ts` or `.tsx` files in key directories (`actions/`, `src/`, `lib/`)
+
+   **Detection Logic**:
+   - **If ANY of the following are true → TypeScript project**:
+     - `typescript` package installed AND `tsconfig.json` exists
+     - Multiple TypeScript indicators (2 or more from above list)
+     - Existing `.ts` files found in `actions/` or `lib/` directories
+   - **Otherwise → JavaScript project**
+
+5. **Detect Project Structure**:
+   - Check `app.config.yaml` for `application:` section (root actions)
+   - Check `app.config.yaml` for `extensions:` section (extension point actions)
+   - If extensions exist, parse the `$include` path for the extension directory
+
+6. **Check Existing Actions**: List all existing actions and their file paths
+   - From root `actions/` directory
+   - From `[extension-path]/actions/` directory
+   - If NO actions exist: Stop and recommend creating an action first
+
+7. **Check Existing Collections**: Look for `lib/database/collection/` directory
+   - List any existing collection classes already defined
+   - Inform the user if a collection for the same entity already exists
+
+8. Only proceed to Step 2 after confirming all prerequisites
+
+---
+
+## Step 2: Ask Required Questions
+
+Before generating any code, ask the user the following questions:
+
+**Important**: Do not make assumptions — keep asking until all details are clear.
+
+1. **Entity Name**: What entity will this collection store?
+   - Examples: `Order`, `User`, `QueueMessage`, `Product`, `Session`
+   - Used to name the collection class (e.g. `OrdersCollection`) and derive the collection name
+
+2. **Collection Name**: What is the MongoDB collection name?
+   - Rules: **only alphanumeric characters and underscores** (`[a-zA-Z0-9_]`) — no hyphens, no spaces
+   - Convention: snake_case plural — e.g. `orders`, `queue_messages`, `user_sessions`
+   - **Default suggestion**: derive from entity name, e.g. `Order` → `orders`
+
+3. **Columns / Schema**: What fields does this collection need?
+   - For each column, ask:
+     - **Name**: snake_case, alphanumeric + underscore only
+     - **Type**: one of `STRING`, `NUMBER`, `BOOLEAN`, `DATETIME`
+     - **Required?**: is this field mandatory in every record?
+     - **Description** (optional): human-readable label
+   - Minimum: at least one column
+   - Tip: guide the user with examples — e.g. `status` (STRING, required), `total` (NUMBER, required), `created_at` (DATETIME, optional)
+
+4. **Data Region**: Which region should the database connect to?
+   - Options: `amer` (default), `emea`, `apac`
+   - **Default**: `amer` — suggest this unless the user knows they need another region
+
+5. **Target Action(s)**: Which existing action(s) will use this collection?
+   - List all discovered actions for the user to choose from
+   - The action will use `collection.run()` directly for custom queries
+
+6. **Query / Operation**: What database operation(s) will the action perform?
+   - Examples: find all, find by filter, insert one, update, delete, count
+   - This determines what goes inside the `run()` callback
+   - Note: for standard CRUD (insert/find/update/delete), suggest "Using AbdbRepository" rule after this setup
+
+7. **Validation Strategy**: Should the action validate incoming params before writing?
+   - **`validate()`** — fail fast on the first bad field (good for single inserts or tight control)
+   - **`validateAll()`** — collect all errors at once (better UX at API boundaries)
+   - **None** — skip validation (read-only or trusted data only)
+
+---
+
+## Step 3: Confirm Implementation Details
+
+After receiving answers to ALL questions, present a comprehensive summary and **wait for user confirmation** before proceeding to Step 4:
+
+---
+
+### 📋 AbdbCollection Integration Summary
+
+**Entity:** `[EntityName]`
+**Collection Class:** `[EntityName]Collection`
+**Collection Name (DB):** `[collection_name]`
+**Language:** [TypeScript/JavaScript] (auto-detected)
+**Region:** `[amer/emea/apac]`
+
+**Schema:**
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `[column_name]` | `[TYPE]` | Yes/No | `[description or —]` |
+
+**Target Action(s):**
+- `[action-name]` → `[path/to/action/index.js]`
+- **Operation**: `[find all / find by filter / insert / update / delete / custom]`
+- **Validation**: `validate()` / `validateAll()` / None
+
+---
+
+### ✅ What Will Be Changed
+
+**1. New Collection Class**
+- ➕ `lib/database/collection/[entity-name]/index.[js/ts]`
+  - Extends `AbdbCollection` with fixed collection name `[collection_name]`
+  - Defines all columns via `addColumn()`
+  - Reusable across all actions in the project
+
+**2. Action Implementation**
+- ✏️ `[action-path]/index.[js/ts]`
+  - Import `[EntityName]Collection` from `lib/database/collection/[entity-name]`
+  - Import `Core` from `@adobe/aio-sdk`
+  - Generate IMS access token via `Core.AuthClient.generateAccessToken(params)`
+  - Call `collection.run(callback, accessToken, region)` for the database operation
+  - Add validation with `validate()` / `validateAll()` if selected
+
+**3. Action Configuration**
+- ✏️ `app.config.yaml` or `ext.config.yaml` (or `actions.config.yaml` if packaged)
+  - Add `include-ims-credentials: true` annotation
+  - Add database auto-provision block (if not already present)
+
+**4. No Additional `.env` Variables Required**
+- `AbdbCollection` uses standard IMS credentials already injected via `include-ims-credentials: true`
+- No new secrets are needed
+
+---
+
+**Should I proceed with this implementation?**
+
+---
+
+## Step 4: Generate Implementation
+
+### Step 4.1: Create the Collection Class
+
+Create a dedicated collection class under `lib/database/collection/`. Always extend `AbdbCollection` — never instantiate it directly with ad hoc column definitions in action code.
+
+#### TypeScript
+
+```typescript
+// lib/database/collection/[entity-name]/index.ts
+
+import { AbdbCollection, AbdbColumnType } from '@adobe-commerce/aio-toolkit';
+
+export class [EntityName]Collection extends AbdbCollection {
+  constructor() {
+    super('[collection_name]', collection => {
+      collection
+        .addColumn('[column_1]', AbdbColumnType.[TYPE], '[description]', true)   // required
+        .addColumn('[column_2]', AbdbColumnType.[TYPE], '[description]', false)  // optional
+        .addColumn('[column_3]', AbdbColumnType.[TYPE], { isRequired: true });   // options-object form
+    });
+  }
+}
+```
+
+#### JavaScript
+
+```javascript
+// lib/database/collection/[entity-name]/index.js
+
+const { AbdbCollection, AbdbColumnType } = require('@adobe-commerce/aio-toolkit');
+
+class [EntityName]Collection extends AbdbCollection {
+  constructor() {
+    super('[collection_name]', collection => {
+      collection
+        .addColumn('[column_1]', AbdbColumnType.[TYPE], '[description]', true)
+        .addColumn('[column_2]', AbdbColumnType.[TYPE], '[description]', false);
+    });
+  }
+}
+
+module.exports = { [EntityName]Collection };
+```
+
+> **Column naming rules**: Only `[a-zA-Z0-9_]` characters are allowed — use snake_case. Hyphens and spaces will throw during construction.
+
+---
+
+### Step 4.2: Integrate into the Target Action
+
+Add the collection to the existing action. Generate an IMS token, then call `run()` with the database logic.
+
+#### Find All Records — TypeScript
+
+```typescript
+import { HttpMethod, RuntimeAction, RuntimeActionResponse } from '@adobe-commerce/aio-toolkit';
+import { Core } from '@adobe/aio-sdk';
+import { [EntityName]Collection } from '../../lib/database/collection/[entity-name]';
+
+const name = '[action-name]';
+
+export const main = RuntimeAction.execute(
+  name,
+  [HttpMethod.POST],
+  [],
+  ['Authorization'],
+  async (params, ctx) => {
+    const { logger } = ctx;
+
+    const tokenResponse = await Core.AuthClient.generateAccessToken(params);
+    const accessToken = tokenResponse && tokenResponse.access_token;
+
+    const collection = new [EntityName]Collection();
+
+    logger.info({ message: `${name}-fetching` });
+
+    const results = await collection.run(async (col) => {
+      return await col.find({}).toArray();
+    }, accessToken, '[amer/emea/apac]');
+
+    logger.info({ message: `${name}-fetched`, count: results.length });
+
+    return RuntimeActionResponse.success(results);
+  }
+);
+```
+
+#### Find with Filter — TypeScript
+
+```typescript
+const results = await collection.run(async (col) => {
+  return await col
+    .find({ status: 'active' })
+    .sort({ _created_at: -1 })
+    .limit(50)
+    .toArray();
+}, accessToken, '[region]');
+```
+
+#### Insert with Validation — TypeScript
+
+```typescript
+// Option A: validate() — fail fast on first error
+collection.validateAll(params);  // use validateAll to surface all problems
+const errors = collection.validateAll(params);
+if (errors.length > 0) {
+  return RuntimeActionResponse.error(HttpStatus.BAD_REQUEST, errors.join(', '));
+}
+
+const result = await collection.run(async (col) => {
+  return await col.insertOne({
+    [column_1]: params.[column_1],
+    [column_2]: params.[column_2],
+  });
+}, accessToken, '[region]');
+```
+
+#### JavaScript (equivalent patterns with `require`)
+
+```javascript
+const { HttpMethod, RuntimeAction, RuntimeActionResponse, HttpStatus } = require('@adobe-commerce/aio-toolkit');
+const { Core } = require('@adobe/aio-sdk');
+const { [EntityName]Collection } = require('../../lib/database/collection/[entity-name]');
+
+const name = '[action-name]';
+
+exports.main = RuntimeAction.execute(
+  name,
+  [HttpMethod.POST],
+  [],
+  ['Authorization'],
+  async (params, ctx) => {
+    const { logger } = ctx;
+
+    const tokenResponse = await Core.AuthClient.generateAccessToken(params);
+    const accessToken = tokenResponse && tokenResponse.access_token;
+
+    const collection = new [EntityName]Collection();
+
+    const results = await collection.run(async (col) => {
+      return await col.find({}).toArray();
+    }, accessToken, 'amer');
+
+    return RuntimeActionResponse.success(results);
+  }
+);
+```
+
+---
+
+### Step 4.3: Update Action Configuration
+
+#### `app.config.yaml` / `ext.config.yaml`
+
+```yaml
+[action-name]:
+  function: [action-path]/index.[js/ts]
+  web: 'yes'
+  runtime: nodejs:22
+  annotations:
+    require-adobe-auth: true
+    final: true
+    include-ims-credentials: true   # REQUIRED: injects IMS credentials for token generation
+  inputs:
+    LOG_LEVEL: debug
+```
+
+> **Why `include-ims-credentials: true`?** `AbdbCollection.run()` requires an IMS access token obtained via `Core.AuthClient.generateAccessToken(params)`. Without this annotation, `generateAccessToken` will fail and `accessToken` will be blank.
+
+#### Database Provisioning (add once per project)
+
+Add the database auto-provision block to `app.config.yaml` if not already present:
+
+```yaml
+application:
+  runtimeManifest:
+    database:
+      auto-provision: true
+      region: [amer/emea/apac]   # match the region used in collection.run()
+```
+
+Or provision manually for local development:
+
+```bash
+aio app db provision --region amer
+```
+
+> **App Builder Data Services API must be enabled** in your Adobe Developer Console project workspace before provisioning.
+
+---
+
+## Step 5: Recommendations
+
+### A. Always Use `validateAll()` at API Boundaries
+
+Prefer `validateAll()` over `validate()` when the action receives data from an external caller — it surfaces all schema errors at once rather than forcing the caller to fix one field at a time:
+
+```typescript
+const errors = collection.validateAll(params);
+if (errors.length > 0) {
+  return RuntimeActionResponse.error(HttpStatus.BAD_REQUEST, errors.join(', '));
+}
+```
+
+Use `validate()` (fail-fast) only when you need to short-circuit immediately and the first error is sufficient context.
+
+### B. Collection and Column Naming Rules
+
+Both collection names and column names must match `[a-zA-Z0-9_]`:
+
+| Input | Valid? | Note |
+|---|---|---|
+| `queue_messages` | ✅ | snake_case — preferred |
+| `orders` | ✅ | simple lowercase |
+| `QueueMessages` | ✅ | PascalCase — allowed but not conventional |
+| `queue-messages` | ❌ | hyphens are not allowed |
+| `order items` | ❌ | spaces are not allowed |
+| `order.items` | ❌ | dots are not allowed |
+
+The collection name throws at construction time — catch naming errors during development, not at runtime.
+
+### C. Missing Value Rules — `0` and `false` Are Not Missing
+
+For **required** columns, a value is considered **missing** (and will fail) only if it is `undefined`, `null`, or an empty/whitespace-only string:
+
+| Value | Required column | Optional column |
+|---|---|---|
+| `undefined` | ❌ Fails — `"field" is required` | ✅ Passes |
+| `null` | ❌ Fails | ✅ Passes |
+| `''` / `' '` | ❌ Fails | ✅ Passes |
+| `0` | ✅ Passes (not missing) | ✅ Passes |
+| `false` | ✅ Passes (not missing) | ✅ Passes |
+
+> **Common mistake**: Assuming `0` or `false` will fail a required check — they won't. Only truly absent/empty values fail.
+
+### D. Column Type Accepted Values
+
+| Type | Accepted values |
+|---|---|
+| `STRING` | Primitive `string` only |
+| `NUMBER` | Finite `number`, or a string that parses to a finite number via `Number()` (e.g. `'3.14'`) |
+| `BOOLEAN` | Primitive `boolean`, or trimmed string `'true'` / `'false'` (case-insensitive) |
+| `DATETIME` | Valid `Date` instance; finite `number` (ms timestamp); ISO 8601 string (e.g. `'2024-01-15'`, `'2024-01-15T10:30:00.000Z'`) |
+
+### E. Connection Lifecycle — `run()` Always Closes
+
+`run()` opens a database connection, executes the callback, then **always closes the connection** in a `finally` block — whether the callback succeeds or throws. You never need to manually close the client.
+
+### F. Error Wrapping in `run()`
+
+Errors from the database are wrapped and rethrown with a prefix:
+- `DbError` → `AbdbCollection: database error: <message>`
+- Any other error → `AbdbCollection: unexpected error: <message>`
+
+Wrap `run()` in a try/catch at the action level to handle these uniformly:
+
+```typescript
+try {
+  const results = await collection.run(async (col) => col.find({}).toArray(), accessToken);
+  return RuntimeActionResponse.success(results);
+} catch (error) {
+  logger.error({ message: `${name}-db-error`, error: error.message });
+  return RuntimeActionResponse.error(HttpStatus.INTERNAL_ERROR, error.message);
+}
+```
+
+### G. Prefer `AbdbRepository` Over `run()` Directly
+
+**Recommendation: always prefer `AbdbRepository`** over calling `run()` directly in action files. `AbdbRepository` provides all standard CRUD operations built-in and exposes `getCollection().run()` for custom queries inside a repository subclass — keeping all database access centralized in one place.
+
+| | `run()` in action file | `AbdbRepository` (recommended) |
+|---|---|---|
+| Use case | Avoid — only when explicitly bypassing the repository | All database operations — insert, find, update, delete, count, pagination |
+| Boilerplate | Raw MongoDB query logic | Built-in methods cover all common patterns |
+| Custom queries | Direct in action (discouraged) | Override in repository subclass via `getCollection().run()` |
+| Recommendation | Rare edge cases only | **Default choice** — use "Using AbdbRepository" rule |
+
+> **When you need a custom query**: extend `AbdbRepository` and add a method that calls `this.getCollection().run()` — do not call `collection.run()` directly in the action file. This keeps all DB access in the repository layer.
+
+---
+
+## Key Components from @adobe-commerce/aio-toolkit
+
+### AbdbCollection Constructor
+
+```typescript
+new AbdbCollection(
+  name: string,                                    // collection name — [a-zA-Z0-9_] only
+  callback?: (collection: AbdbCollection) => void  // optional fluent setup function
+)
+```
+
+### AbdbCollection.addColumn()
+
+```typescript
+// Positional form
+addColumn(name: string, type: AbdbColumnType, description?: string, isRequired?: boolean): this
+
+// Options object form
+addColumn(name: string, type: AbdbColumnType, options?: { description?: string; isRequired?: boolean }): this
+```
+
+Returns `this` — chainable.
+
+### AbdbCollection.run()
+
+```typescript
+async run<T>(
+  callback: (collection: DbCollection, client: DbClient) => Promise<T>,
+  token: string,      // IMS access token — from Core.AuthClient.generateAccessToken(params)
+  region?: string     // default: 'amer' — options: 'amer', 'emea', 'apac'
+): Promise<T>
+```
+
+Connection is always closed in `finally` — never call `client.close()` manually.
+
+**`_id` filters inside `run()`:** MongoDB stores document identifiers as `ObjectId` instances, not plain strings. If your callback filters by `_id`, you must wrap the string with `new ObjectId()` from `bson`:
+
+```typescript
+import { ObjectId } from 'bson';
+
+const result = await collection.run(async (col) => {
+  return await col.findOne({ _id: new ObjectId(params.id) });
+}, accessToken);
+```
+
+> `bson` is a transitive dependency of `@adobe/aio-lib-db` — it is already present in your project and does not need to be installed separately. Plain string comparisons against `_id` will return no results.
+
+### AbdbCollection.validate() / validateAll()
+
+```typescript
+validate(record: Record<string, unknown>): void         // throws on first error
+validateAll(record: Record<string, unknown>): string[]  // returns all errors ([] if valid)
+```
+
+### AbdbColumnType Enum
+
+```typescript
+enum AbdbColumnType {
+  STRING   = 'STRING',
+  NUMBER   = 'NUMBER',
+  BOOLEAN  = 'BOOLEAN',
+  DATETIME = 'DATETIME',
+}
+```
+
+### Exports
+
+```typescript
+import {
+  AbdbCollection,
+  AbdbColumn,
+  AbdbColumnType,
+} from '@adobe-commerce/aio-toolkit';
+
+// Types (TypeScript only)
+import type {
+  AbdbCollectionCallback,
+  AbdbRunCallback,
+  AddColumnOptions,
+  AbdbColumnOptions,
+  AbdbColumnJson,
+} from '@adobe-commerce/aio-toolkit';
+```
+
+---
+
+## Important Notes
+
+1. **Peer dependency is mandatory**: `@adobe/aio-lib-db >= 1.0.0` must be installed — `AbdbCollection` will not function without it
+2. **`include-ims-credentials: true` is required**: `Core.AuthClient.generateAccessToken(params)` needs injected IMS credentials to generate a token for `run()`
+3. **Always extend `AbdbCollection`**: Never use `AbdbCollection` directly in action code — always create a dedicated subclass per entity in `lib/database/collection/`
+4. **Collection and column names are validated at construction**: Naming errors throw immediately — not at query time
+5. **`run()` always closes the connection**: No manual cleanup needed — the `finally` block handles it regardless of success or failure
+6. **Database must be provisioned first**: Use `aio app db provision --region amer` or `auto-provision: true` in `app.config.yaml` before the action can connect
+7. **App Builder Data Services API must be enabled**: Enabled in Adobe Developer Console → Your project → Workspace → Services
+8. **`0` and `false` are not missing**: Only `undefined`, `null`, and empty/whitespace strings are treated as missing for required column validation
+9. **`validate()` throws; `validateAll()` returns errors**: Use `validateAll()` at API boundaries for better error messages; use `validate()` for internal guard checks
+10. **Prefer `AbdbRepository` over direct `run()`**: Do not call `collection.run()` in action files — use `AbdbRepository` for all standard operations and `getCollection().run()` inside a repository subclass for custom queries
+11. **`_id` filters require `ObjectId`**: Wrap string IDs with `new ObjectId(id)` from `bson` when filtering by `_id` inside a `run()` callback — plain strings will return no results
+
+## Integration with Action Creation Rules
+
+**This rule should be referenced in other action creation rules when database storage is mentioned:**
+
+### Trigger Patterns in Other Rules
+
+When developers mention these phrases during action creation in the "Business Logic" question:
+
+- "Store data in App Builder Data"
+- "Use ABDB / MongoDB"
+- "Persist records to the database"
+- "Define a collection schema"
+- "Query the database"
+- Any phrase containing "ABDB", "App Builder Data", "aio-lib-db", or "MongoDB"
+
+**Action to take:**
+
+1. Complete the action creation first
+2. Then inform the user: "I see you need App Builder Data storage. Let me set up the AbdbCollection."
+3. Trigger/reference the "Using AbdbCollection" rule
+4. This rule handles the peer dependency, collection class, token generation, `run()` integration, and YAML config
+
+**Example Flow:**
+
+```
+User: "Create a runtime action that saves queue messages to the App Builder database"
+AI: ✓ Detected TypeScript project
+AI: Creating runtime action... [generates index.ts]
+AI: I see you need App Builder Data storage. Let me set up the AbdbCollection.
+AI: [Creates lib/database/collection/queue-messages/index.ts]
+AI: The collection schema is ready. For full CRUD (insert, find, update, delete), use the "Using AbdbRepository" rule next.
+```
+
+## Related Rules
+
+- **Using AbdbRepository**: Add full CRUD operations (insert, find, update, delete, count, pagination) on top of this collection using `AbdbRepository`

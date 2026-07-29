@@ -1,0 +1,705 @@
+---
+description: Adding AbdbRepository CRUD data access to Adobe I/O Runtime actions using @adobe-commerce/aio-toolkit
+globs: '**/{actions,lib}/**/*.{ts,js}'
+alwaysApply: false
+---
+
+# Using AbdbRepository
+
+## Trigger Conditions
+
+This rule applies when the user requests full CRUD database operations using App Builder Data (ABDB) with any of these phrases:
+
+- "Use AbdbRepository"
+- "Insert records to ABDB"
+- "Find / list records from the database"
+- "Update a document in App Builder Data"
+- "Delete from the database"
+- "CRUD operations on ABDB"
+- "Paginate database results"
+- "Standard database CRUD in App Builder"
+- "Save to App Builder Data"
+- "Count documents in ABDB"
+- "Check if a record exists"
+
+**Important**: `AbdbRepository` always requires an `AbdbCollection` class to exist first. If the collection class for the target entity has not been created yet, use the "Using AbdbCollection" rule first before this one.
+
+**Recommended approach**: Use `AbdbRepository` for all standard database operations. Extend it with custom methods using `getCollection().run()` for any queries not covered by the built-in methods — rather than calling `collection.run()` directly in action files.
+
+**Integration with Other Action Creation Rules:**
+
+When using action creation rules (RuntimeAction, WebhookAction, EventConsumerAction, GraphQlAction, OpenwhiskAction) and the developer mentions CRUD database operations:
+
+- **Automatically trigger this rule** after the action is created and the collection class is confirmed
+- Examples: "save records to the database", "find all active records", "update status", "delete a document"
+- This rule handles creating the repository class, integrating it into the action, and all CRUD operation templates
+
+---
+
+## Step 1: Verify Prerequisites
+
+Before proceeding, verify:
+
+1. **Toolkit installed**: Check `@adobe-commerce/aio-toolkit` in `package.json` dependencies
+   - If NOT installed: `npm install @adobe-commerce/aio-toolkit`
+
+2. **Peer dependency — aio-lib-db**: Check `@adobe/aio-lib-db` in `package.json` dependencies
+   - **Required**: `AbdbRepository` uses this internally
+   - If NOT installed: `npm install @adobe/aio-lib-db`
+   - Minimum version: `>= 1.0.0`
+
+3. **AIO SDK installed**: Check `@adobe/aio-sdk` in `package.json` dependencies
+   - Required for `Core.AuthClient.generateAccessToken(params)` to obtain an IMS access token
+   - If NOT installed: `npm install @adobe/aio-sdk`
+
+4. **Detect Language (TypeScript vs JavaScript)**:
+
+   **Check for TypeScript indicators (check ALL of these)**:
+   1. **Package Dependencies**: Look for `typescript` in `package.json` dependencies or devDependencies
+   2. **Config File**: Check if `tsconfig.json` exists in project root
+   3. **TypeScript Loaders**: Look for `ts-loader`, `ts-node`, or `@types/*` packages in `package.json`
+   4. **Existing Files**: Check for `.ts` or `.tsx` files in key directories (`actions/`, `src/`, `lib/`)
+
+   **Detection Logic**:
+   - **If ANY of the following are true → TypeScript project**:
+     - `typescript` package installed AND `tsconfig.json` exists
+     - Multiple TypeScript indicators (2 or more from above list)
+     - Existing `.ts` files found in `actions/` or `lib/` directories
+   - **Otherwise → JavaScript project**
+
+5. **Check for Existing Collection Class** — REQUIRED:
+   - Look for `lib/database/collection/` directory
+   - **If a collection class exists for the target entity**: proceed to Step 2
+   - **If NO matching collection class exists**: STOP — inform the user:
+     > "AbdbRepository requires an AbdbCollection class first. Let me help you create it using the 'Using AbdbCollection' rule before setting up the repository."
+   - List discovered collection classes for the user to choose from
+
+6. **Check for Existing Repository Classes**: Look for `lib/database/repository/` directory
+   - List any existing repository classes
+   - Inform the user if a repository for the same entity already exists
+
+7. **Detect Project Structure**:
+   - Check `app.config.yaml` for `application:` and `extensions:` sections
+   - List all existing actions and their file paths
+
+8. Only proceed to Step 2 after confirming all prerequisites
+
+---
+
+## Step 2: Ask Required Questions
+
+Before generating any code, ask the user the following questions:
+
+**Important**: Do not make assumptions — keep asking until all details are clear.
+
+1. **Entity Name / Collection**: Which entity will this repository operate on?
+   - List discovered collection classes for the user to choose from
+   - The repository will wrap the matching collection (e.g. `OrdersCollection` → `OrdersRepository`)
+
+2. **Data Region**: Which region should the repository connect to?
+   - Options: `amer` (default), `emea`, `apac`
+   - **Default**: `amer` — suggest unless the user knows otherwise
+
+3. **Target Action(s)**: Which existing action(s) will use this repository?
+   - List all discovered actions for the user to choose from
+
+4. **CRUD Operations**: Which operations does the action need?
+   - **Insert** (`save()` without ID or `insertOne()`) — insert a new document
+   - **Update** (`save(payload, id)` or `updateOne()`) — partial update by ID or filter
+   - **Find all / filtered** (`find()`) — retrieve documents with optional filter, sort, pagination
+   - **Find by ID** (`findById()`) — retrieve a single document by `_id` string
+   - **Delete by ID** (`deleteById()`) — delete a single document by `_id` string
+   - **Delete by filter** (`deleteOne()` or `delete()`) — delete by matching criteria
+   - **Existence check** (`isIdExists()`, `exists()`) — check presence without fetching content
+   - **Count** (`count()`) — count matching documents
+   - **Bulk insert** (`insert([])`) — insert multiple documents in one call
+   - **Custom query** (`getCollection().run()` inside repository subclass) — anything not covered above
+
+5. **Pagination** (if `find()` is selected):
+   - Is pagination needed? (`page_size` and `current_page`)
+   - Default sort column and direction? (e.g. `_created_at` descending)
+
+6. **TypeScript: Define Record Interface?** (TypeScript projects only)
+   - Should a typed `AbdbRecord` interface be created for this entity?
+   - Example: `interface OrderRecord extends AbdbRecord { status: string; total: number; }`
+
+7. **Custom Methods**: Are there any custom queries beyond standard CRUD?
+   - If yes: what is the query? (e.g. "find all records with status = X, sorted by date, limit 50")
+   - These will be added as methods on the repository subclass using `getCollection().run()`
+
+---
+
+## Step 3: Confirm Implementation Details
+
+After receiving answers to ALL questions, present a comprehensive summary and **wait for user confirmation** before proceeding to Step 4:
+
+---
+
+### 📋 AbdbRepository Integration Summary
+
+**Entity:** `[EntityName]`
+**Repository Class:** `[EntityName]Repository`
+**Wraps Collection:** `[EntityName]Collection` (from `lib/database/collection/[entity-name]`)
+**Language:** [TypeScript/JavaScript] (auto-detected)
+**Region:** `[amer/emea/apac]`
+
+**Target Action(s):**
+- `[action-name]` → `[path/to/action/index.js]`
+
+**Operations to Integrate:**
+
+| Operation | Method | Details |
+|---|---|---|
+| Insert | `save(payload)` / `insertOne(payload)` | Full validation — all required fields |
+| Update | `save(payload, id)` / `updateOne(payload, filter)` | Partial validation — only provided fields |
+| Find all / filtered | `find(filter, options)` | Sort: `[column]` `[asc/desc]`; Page size: `[n]` |
+| Find by ID | `findById(id)` | Auto-wraps `ObjectId` |
+| Delete by ID | `deleteById(id)` | Auto-wraps `ObjectId` |
+| Exists / Count | `isIdExists(id)` / `exists(filter)` / `count(filter)` | No content fetch |
+| Custom query | `getCollection().run()` inside subclass | `[describe query]` |
+
+[TypeScript] **Record Interface**: `[EntityName]Record extends AbdbRecord`
+
+---
+
+### ✅ What Will Be Changed
+
+**1. New Repository Class**
+- ➕ `lib/database/repository/[entity-name]/index.[js/ts]`
+  - Extends `AbdbRepository` wrapping `[EntityName]Collection`
+  - Token and region passed in constructor
+  - Optional: custom methods using `getCollection().run()`
+
+**2. Action Implementation**
+- ✏️ `[action-path]/index.[js/ts]`
+  - Import `[EntityName]Repository` from `lib/database/repository/[entity-name]`
+  - Import `Core` from `@adobe/aio-sdk`
+  - Generate IMS access token via `Core.AuthClient.generateAccessToken(params)`
+  - Construct `new [EntityName]Repository(accessToken, '[region]')`
+  - Add selected CRUD operations with null/empty result handling
+
+**3. Action Configuration**
+- ✏️ `app.config.yaml` / `ext.config.yaml`
+  - Add `include-ims-credentials: true` annotation (if not already present)
+  - Confirm database auto-provision block is present
+
+**4. No Additional `.env` Variables Required**
+- `AbdbRepository` uses standard IMS credentials injected via `include-ims-credentials: true`
+
+---
+
+**Should I proceed with this implementation?**
+
+---
+
+## Step 4: Generate Implementation
+
+### Step 4.1: Create the Repository Class
+
+Create a dedicated repository class under `lib/database/repository/`. Always extend `AbdbRepository` — pass the matching collection instance and token in the constructor.
+
+#### Simple Repository — TypeScript
+
+```typescript
+// lib/database/repository/[entity-name]/index.ts
+
+import { AbdbRepository } from '@adobe-commerce/aio-toolkit';
+import { [EntityName]Collection } from '@lib/database/collection/[entity-name]';
+
+export class [EntityName]Repository extends AbdbRepository {
+  constructor(token: string, region = 'amer') {
+    super(new [EntityName]Collection(), token, region);
+  }
+}
+```
+
+#### Repository with Custom Method — TypeScript
+
+```typescript
+// lib/database/repository/[entity-name]/index.ts
+
+import { AbdbRepository } from '@adobe-commerce/aio-toolkit';
+import { [EntityName]Collection } from '@lib/database/collection/[entity-name]';
+
+export class [EntityName]Repository extends AbdbRepository {
+  constructor(token: string, region = 'amer') {
+    super(new [EntityName]Collection(), token, region);
+  }
+
+  // Custom query — use getCollection().run() for operations not covered by AbdbRepository
+  async findByStatus(status: string): Promise<[EntityName]Record[]> {
+    return this.getCollection().run(async (col) => {
+      return await col
+        .find({ status })
+        .sort({ _created_at: 1 })
+        .toArray();
+    }, this['_token']);
+  }
+}
+```
+
+#### TypeScript Record Interface (optional but recommended)
+
+```typescript
+import type { AbdbRecord } from '@adobe-commerce/aio-toolkit';
+
+export interface [EntityName]Record extends AbdbRecord {
+  // your domain fields — match the collection columns
+  [column_1]: string;
+  [column_2]: number;
+  [column_3]?: boolean;
+}
+
+export class [EntityName]Repository extends AbdbRepository<[EntityName]Record> {
+  constructor(token: string, region = 'amer') {
+    super(new [EntityName]Collection(), token, region);
+  }
+}
+```
+
+#### JavaScript
+
+```javascript
+// lib/database/repository/[entity-name]/index.js
+
+const { AbdbRepository } = require('@adobe-commerce/aio-toolkit');
+const { [EntityName]Collection } = require('../collection/[entity-name]');
+
+class [EntityName]Repository extends AbdbRepository {
+  constructor(token, region = 'amer') {
+    super(new [EntityName]Collection(), token, region);
+  }
+}
+
+module.exports = { [EntityName]Repository };
+```
+
+---
+
+### Step 4.2: Integrate into the Target Action
+
+Generate an IMS token, construct the repository, then call the required CRUD methods.
+
+#### Insert a New Document — JavaScript
+
+```javascript
+const { RuntimeAction, RuntimeActionResponse, HttpMethod } = require('@adobe-commerce/aio-toolkit');
+const { Core } = require('@adobe/aio-sdk');
+const { [EntityName]Repository } = require('../../lib/database/repository/[entity-name]');
+
+const name = '[action-name]';
+
+exports.main = RuntimeAction.execute(
+  name,
+  [HttpMethod.POST],
+  ['[required_param_1]', '[required_param_2]'],
+  ['Authorization'],
+  async (params, ctx) => {
+    const { logger } = ctx;
+
+    const tokenResponse = await Core.AuthClient.generateAccessToken(params);
+    const accessToken = tokenResponse && tokenResponse.access_token;
+
+    const repo = new [EntityName]Repository(accessToken);
+
+    const result = await repo.save({
+      [column_1]: params.[column_1],
+      [column_2]: params.[column_2],
+    });
+
+    logger.info({ message: `${name}-created`, id: result.insertedId });
+
+    return RuntimeActionResponse.success({ id: result.insertedId });
+  }
+);
+```
+
+#### Find All / Filtered with Pagination — JavaScript
+
+```javascript
+const messages = await repo.find(
+  { status: 'active' },          // filter — pass {} for all documents
+  {
+    sort: { column: '_created_at', direction: 'desc' },
+    current_page: params.page || 1,   // 1-based; requires page_size
+    page_size: params.limit || 20,
+  }
+);
+```
+
+#### Find by ID — JavaScript
+
+```javascript
+const { ObjectId } = require('bson');  // only needed for custom _id filters
+
+// findById() wraps ObjectId internally — pass plain string ID
+const record = await repo.findById(params.id);
+if (!record) {
+  return RuntimeActionResponse.error(HttpStatus.NOT_FOUND, `[EntityName] '${params.id}' not found`);
+}
+return RuntimeActionResponse.success(record);
+```
+
+#### Partial Update — JavaScript
+
+```javascript
+// save(payload, id) = upsert update — only validated fields in payload are written
+const result = await repo.save(
+  { status: params.status },  // partial payload — partial validation only
+  params.id                   // existing document _id as plain string
+);
+
+logger.info({ message: `${name}-updated`, id: params.id, modifiedCount: result.modifiedCount });
+return RuntimeActionResponse.success({ id: params.id, modifiedCount: result.modifiedCount });
+```
+
+#### Delete by ID — JavaScript
+
+```javascript
+// deleteById() wraps ObjectId internally — pass plain string ID
+const result = await repo.deleteById(params.id);
+logger.info({ message: `${name}-deleted`, deletedCount: result.deletedCount });
+return RuntimeActionResponse.success({ deletedCount: result.deletedCount });
+```
+
+#### Existence Check and Count — JavaScript
+
+```javascript
+// Check if specific ID exists — returns true/false, no content fetch
+const exists = await repo.isIdExists(params.id);
+
+// Check if any matching document exists
+const hasActive = await repo.exists({ status: 'active' });
+
+// Count matching documents
+const activeCount = await repo.count({ status: 'active' });
+const total = await repo.count();  // all documents
+```
+
+#### Bulk Insert — JavaScript
+
+```javascript
+const payloads = params.items.map(item => ({
+  [column_1]: item.[column_1],
+  [column_2]: item.[column_2],
+}));
+
+const result = await repo.insert(payloads);
+logger.info({ message: `${name}-bulk-inserted`, count: Object.keys(result.insertedIds).length });
+return RuntimeActionResponse.success({ insertedIds: result.insertedIds });
+```
+
+**TypeScript:** Same patterns with `import` syntax:
+
+```typescript
+import { HttpMethod, RuntimeAction, RuntimeActionResponse, HttpStatus } from '@adobe-commerce/aio-toolkit';
+import { Core } from '@adobe/aio-sdk';
+import { [EntityName]Repository } from '../../lib/database/repository/[entity-name]';
+```
+
+---
+
+### Step 4.3: Update Action Configuration
+
+```yaml
+[action-name]:
+  function: [action-path]/index.[js/ts]
+  web: 'yes'
+  runtime: nodejs:22
+  annotations:
+    require-adobe-auth: true
+    final: true
+    include-ims-credentials: true   # REQUIRED: injects IMS credentials for token generation
+  inputs:
+    LOG_LEVEL: debug
+```
+
+> **Why `include-ims-credentials: true`?** `AbdbRepository` requires an IMS access token from `Core.AuthClient.generateAccessToken(params)`. Without this annotation, token generation fails and the repository constructor will throw.
+
+Confirm the database auto-provision block is present in `app.config.yaml` (add once per project if not already there):
+
+```yaml
+application:
+  runtimeManifest:
+    database:
+      auto-provision: true
+      region: [amer/emea/apac]
+```
+
+---
+
+## Step 5: Recommendations
+
+### A. `save()` Semantics — Insert vs Update
+
+`save()` behaves differently depending on whether an `id` is passed:
+
+| Call | Operation | Validation | Returns |
+|---|---|---|---|
+| `save(payload)` — no ID | `insertOne` | **Full** — all required fields | `{ insertedId: '...' }` |
+| `save(payload, id)` — with ID | `updateOne` with `upsert: true` | **Partial** — only provided fields | `{ modifiedCount: 1 }` |
+
+Use `save()` as the unified insert/update method. Use `insertOne()` or `updateOne()` when you need more explicit control.
+
+### B. `ObjectId` for `_id` Filters
+
+The convenience methods automatically handle `ObjectId` wrapping internally:
+
+| Method | `ObjectId` handling |
+|---|---|
+| `findById(id)` | Wrapped internally — pass plain string |
+| `deleteById(id)` | Wrapped internally — pass plain string |
+| `isIdExists(id)` | Wrapped internally — pass plain string |
+| `findOne({ _id: ... })` | **Manual** — wrap with `new ObjectId(id)` from `bson` |
+| `updateOne(payload, { _id: ... })` | **Manual** — wrap with `new ObjectId(id)` from `bson` |
+| `deleteOne({ _id: ... })` | **Manual** — wrap with `new ObjectId(id)` from `bson` |
+
+```javascript
+const { ObjectId } = require('bson');  // bson is already installed via @adobe/aio-lib-db
+
+// When filtering by _id manually:
+await repo.findOne({ _id: new ObjectId(params.id) });
+await repo.updateOne({ status: 'done' }, { _id: new ObjectId(params.id) });
+await repo.deleteOne({ _id: new ObjectId(params.id) });
+```
+
+> `bson` is a transitive dependency of `@adobe/aio-lib-db` — no separate install needed.
+
+### C. Automatic Timestamps — Do Not Declare Them in the Schema
+
+`AbdbRepository` automatically manages `_created_at` and `_updated_at` on every write:
+
+| Timestamp | Set on | Value |
+|---|---|---|
+| `_created_at` | First insert only | ISO 8601 UTC string |
+| `_updated_at` | Every insert and update | ISO 8601 UTC string |
+
+These are registered on the collection by the repository constructor. **Do not add `_created_at` or `_updated_at` columns to your `AbdbCollection` subclass** — the repository handles this, and duplicate column registration will throw.
+
+### D. `find()` Pagination Options
+
+`find()` supports server-side sorting and pagination via `AbdbFindOptions`:
+
+```javascript
+// Sort only — no pagination
+await repo.find({ status: 'active' }, {
+  sort: { column: '_created_at', direction: 'desc' }
+});
+
+// Limit only
+await repo.find({}, { page_size: 10 });
+
+// Full pagination — page 2, 20 per page
+await repo.find({}, { current_page: 2, page_size: 20, sort: { column: 'name' } });
+```
+
+- `direction` defaults to `'asc'` when omitted
+- `current_page` is 1-based and requires `page_size` to have effect
+- Omit both for all documents
+
+### E. Validation Behaviour by Operation
+
+| Operation | Type | What is checked |
+|---|---|---|
+| `save()` (insert) | **Full** | All required columns must be present |
+| `save(payload, id)` (update) | **Partial** | Only fields in payload |
+| `insertOne()` | **Full** | All required columns |
+| `insert([])` | **Full** | Each document independently |
+| `updateOne()` | **Partial** | Only fields in payload |
+| `update()` | **Partial** | Only fields in payload |
+
+Partial validation intentionally skips required columns absent from the payload — they already exist in the stored document.
+
+### F. `delete({})` Danger
+
+Calling `delete()` with no filter (or `{}`) deletes **all documents** in the collection. Always pass a meaningful filter:
+
+```javascript
+// DANGER — deletes everything in the collection
+await repo.delete();
+await repo.delete({});
+
+// Safe — targeted deletion
+await repo.delete({ status: 'expired' });
+await repo.deleteById(params.id);
+```
+
+### G. Custom Queries — Extend the Repository, Not the Action
+
+When you need a query not covered by `AbdbRepository`'s built-in methods, add a method to the repository subclass using `getCollection().run()`:
+
+```typescript
+// In the repository class — NOT in the action file
+async findByQueueAndStatus(queueName: string, status: string) {
+  return this.getCollection().run(async (col) => {
+    return await col
+      .find({ queue_name: queueName, status })
+      .sort({ _created_at: 1 })
+      .toArray();
+  }, this['_token']);
+}
+```
+
+Then call it like any other repository method in the action:
+
+```typescript
+const results = await repo.findByQueueAndStatus(params.queue_name, params.status);
+```
+
+This keeps all database access in the repository layer and makes the action code clean and testable.
+
+---
+
+## Key Components from @adobe-commerce/aio-toolkit
+
+### AbdbRepository Constructor
+
+```typescript
+new AbdbRepository<T extends AbdbRecord>(
+  collection: AbdbCollection,  // the collection schema instance
+  token: string,               // IMS access token — throws if blank
+  region?: string              // default: 'amer' — options: 'amer', 'emea', 'apac'
+)
+```
+
+Automatically registers `_created_at` and `_updated_at` columns on the collection at construction time.
+
+### Single-Document Methods
+
+```typescript
+save(payload: Partial<T>, id?: string): Promise<Record<string, any>>
+// No id: insertOne (full validation). With id: updateOne upsert (partial validation)
+
+insertOne(payload: Partial<T>): Promise<Record<string, any>>
+// Full validation. Returns { acknowledged, insertedId }
+
+updateOne(payload: Partial<T>, filter?: Record<string, unknown>, options?: Record<string, unknown>): Promise<Record<string, any>>
+// Partial validation. Uses { $set: payload }. Returns { acknowledged, modifiedCount }
+
+findOne(filter: Record<string, unknown>): Promise<T | null>
+// Returns first match or null. Wrap _id with new ObjectId(id) for ID filters
+
+findById(id: string): Promise<T | null>
+// Shorthand for findOne({ _id: new ObjectId(id) }). Returns null if not found
+
+deleteOne(filter?: Record<string, unknown>): Promise<Record<string, any>>
+// Deletes first match. Wrap _id with new ObjectId(id) for ID filters
+
+deleteById(id: string): Promise<Record<string, any>>
+// Shorthand for deleteOne({ _id: new ObjectId(id) })
+
+isIdExists(id: string): Promise<boolean>
+// Returns true if _id exists. Uses countDocuments — no content fetched
+
+exists(filter?: Record<string, unknown>, options?: Record<string, unknown>): Promise<boolean>
+// Returns true if any matching document exists
+
+count(filter?: Record<string, unknown>, options?: Record<string, unknown>): Promise<number>
+// Counts matching documents. No filter = count all
+```
+
+### Bulk Methods
+
+```typescript
+insert(payloads: Partial<T>[]): Promise<Record<string, any>>
+// Bulk insertMany. Full validation per document. Returns { acknowledged, insertedIds }
+
+update(payload: Partial<T>, filter?: Record<string, unknown>, options?: Record<string, unknown>): Promise<Record<string, any>>
+// updateMany. Partial validation. Returns { acknowledged, modifiedCount }
+
+delete(filter?: Record<string, unknown>): Promise<Record<string, any>>
+// deleteMany. No filter = delete ALL. Returns { acknowledged, deletedCount }
+```
+
+### Query with Pagination
+
+```typescript
+find(filter?: Record<string, unknown>, options?: AbdbFindOptions): Promise<T[]>
+
+interface AbdbFindOptions {
+  sort?: { column: string; direction?: 'asc' | 'desc' };  // direction default: 'asc'
+  page_size?: number;    // max documents to return
+  current_page?: number; // 1-based; requires page_size
+}
+```
+
+### Accessor Methods
+
+```typescript
+getName(): string             // returns the collection name
+getCollection(): AbdbCollection  // returns the AbdbCollection instance (for getCollection().run())
+```
+
+### AbdbRecord Type
+
+```typescript
+interface AbdbRecord {
+  _id?: string;
+  _created_at?: string;  // auto-managed by AbdbRepository — do not declare in collection schema
+  _updated_at?: string;  // auto-managed by AbdbRepository — do not declare in collection schema
+  [key: string]: unknown;
+}
+```
+
+### Exports
+
+```typescript
+import { AbdbRepository } from '@adobe-commerce/aio-toolkit';
+
+// Types (TypeScript only)
+import type {
+  AbdbRecord,
+  AbdbFindOptions,
+  AbdbFindSort,
+  AbdbFindSortDirection,
+  AbdbRepositoryFilter,
+} from '@adobe-commerce/aio-toolkit';
+```
+
+---
+
+## Important Notes
+
+1. **AbdbCollection must exist first**: Always create the collection class using "Using AbdbCollection" before setting up the repository
+2. **`include-ims-credentials: true` is required**: Token generation fails without this annotation; the repository constructor throws if token is blank
+3. **Always extend `AbdbRepository`**: Never use `AbdbRepository` directly with a raw `AbdbCollection` in action code — create a dedicated subclass per entity in `lib/database/repository/`
+4. **Do not declare `_created_at` / `_updated_at` in the collection schema**: These are registered automatically by the repository constructor; duplicate registration throws
+5. **`findById()`, `deleteById()`, `isIdExists()` wrap `ObjectId` internally**: Use these for ID-based operations instead of manual `ObjectId` construction
+6. **`findOne()`, `updateOne()`, `deleteOne()` with `_id` need manual `ObjectId`**: Wrap with `new ObjectId(id)` from `bson` when filtering by `_id`
+7. **`delete()` with no filter deletes ALL documents**: Always pass a meaningful filter; use `deleteById()` or `deleteOne()` for targeted deletes
+8. **`save()` without ID = insert; with ID = update upsert**: Full validation on insert, partial on update
+9. **Custom queries belong in the repository subclass**: Use `getCollection().run()` inside a repository method — not `collection.run()` directly in action files
+10. **Database must be provisioned**: `aio app db provision --region amer` or `auto-provision: true` in `app.config.yaml`
+11. **Peer dependency is mandatory**: `@adobe/aio-lib-db >= 1.0.0` must be installed
+
+## Integration with Action Creation Rules
+
+**This rule should be referenced in other action creation rules when CRUD database operations are mentioned:**
+
+### Trigger Patterns in Other Rules
+
+When developers mention these phrases during action creation:
+
+- "Insert / save / update / delete records in ABDB"
+- "Find documents from the database"
+- "Use AbdbRepository"
+- "CRUD on App Builder Data"
+- "Paginate database results"
+- Any phrase containing "AbdbRepository" or "CRUD" + "ABDB" / "App Builder Data"
+
+**Action to take:**
+
+1. Check if an `AbdbCollection` class already exists for the entity
+2. If not: run "Using AbdbCollection" first, then come back to this rule
+3. Create the repository class and integrate into the action
+4. This rule handles `ObjectId` guidance, pagination, timestamp management, and all CRUD templates
+
+**Example Flow:**
+
+```
+User: "Create a runtime action that inserts and retrieves queue messages from App Builder Data"
+AI: ✓ Found QueueMessagesCollection in lib/database/collection/queue-messages
+AI: Creating repository class... [creates lib/database/repository/queue-messages/index.ts]
+AI: Integrating save() and find() into the action... [updates action/index.ts]
+AI: Updated app.config.yaml with include-ims-credentials: true
+```

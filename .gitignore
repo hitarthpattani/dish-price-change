@@ -1,0 +1,55 @@
+
+# package directories
+node_modules
+jspm_packages
+
+# build
+build
+dist
+.manifest-dist.yml
+
+# Config
+config.json
+.env*
+.aio
+
+# Adobe I/O console config
+console.json
+
+# Test output
+junit.xml
+
+# IDE & Temp
+.cache
+.idea
+.nyc_output
+.vscode
+coverage
+.aws.tmp.creds.json
+.wskdebug.props.tmp
+
+# Parcel
+.parcel-cache
+
+# OSX
+.DS_Store
+
+# yeoman
+.yo-repository
+
+# logs folder for aio-run-detached
+logs
+
+HPattaniExtCompile-*.json
+
+# Admin UI SDK (root server only, not actions)
+/admin-ui-sdk
+
+# Workspace config files
+*-StarterKit.json
+*-HPattani.json
+
+src/commerce-configuration-1
+src/commerce-extensibility-1
+
+HPattaniPriceChange-*.json

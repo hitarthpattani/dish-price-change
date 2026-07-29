@@ -1,0 +1,66 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["dom", "dom.iterable", "es6"],
+    "types": ["jest", "node"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "ES2020",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@actions/*": ["src/commerce-backend-ui-1/actions/*"],
+      "@lib/*": ["src/commerce-backend-ui-1/lib/*"],
+      "@web/*": ["src/commerce-backend-ui-1/web-src/src/*"],
+      "@components/*": ["src/commerce-backend-ui-1/web-src/src/components/*"],
+      "@types/*": ["src/commerce-backend-ui-1/web-src/src/types/*"],
+      "@utils/*": ["src/commerce-backend-ui-1/web-src/src/utils/*"]
+    },
+    /* Strict Type-Checking Options - Relaxed for JS files */
+    "checkJs": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitReturns": false,
+    "noImplicitThis": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false,
+    "noImplicitOverride": true,
+
+    /* Additional Strict Checks - Relaxed for migration */
+    "noUncheckedIndexedAccess": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    /* Advanced Strict Options */
+    "useUnknownInCatchVariables": false,
+    "noImplicitUseStrict": false
+  },
+  "include": [
+    "src/commerce-backend-ui-1/web-src/src/**/*",
+    "src/commerce-backend-ui-1/actions/**/*",
+    "src/commerce-backend-ui-1/lib/**/*",
+    "src/commerce-backend-ui-1/scripts/**/*",
+    "src/commerce-backend-ui-1/test/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "src/commerce-backend-ui-1/web-src/src/exc-runtime.js"
+  ]
+}

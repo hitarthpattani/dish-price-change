@@ -1,0 +1,16 @@
+$schema: http://json-schema.org/draft-07/schema
+$id: https://adobe.io/schemas/app-builder-templates/1
+
+categories:
+  - action
+  - ui
+
+extensions:
+  # This extension is required for backend UI. Do not remove.
+  - extensionPointId: commerce/backend-ui/1
+
+  # This extension is required for business configuration. Do not remove.
+  - extensionPointId: commerce/configuration/1
+
+  # This extension is required for app management. Do not remove.
+  - extensionPointId: commerce/extensibility/1

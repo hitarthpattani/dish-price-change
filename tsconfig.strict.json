@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /* Strict Type-Checking Options - For TypeScript-only files */
+    "checkJs": false,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitOverride": true,
+
+    /* Additional Strict Checks */
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    /* Advanced Strict Options */
+    "useUnknownInCatchVariables": true,
+    "noImplicitUseStrict": false
+  },
+  "include": [
+    "src/commerce-backend-ui-1/**/*.ts",
+    "src/commerce-backend-ui-1/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "src/commerce-backend-ui-1/test"
+  ]
+}
+

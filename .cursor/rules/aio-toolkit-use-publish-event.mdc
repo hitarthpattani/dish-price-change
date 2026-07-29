@@ -1,0 +1,510 @@
+---
+description: Adding PublishEvent to Adobe I/O Runtime actions using @adobe-commerce/aio-toolkit
+globs: '**/{actions,lib}/**/*.{ts,js}'
+alwaysApply: false
+---
+
+# Using PublishEvent
+
+## Trigger Conditions
+
+This rule applies when the user requests to publish events to Adobe I/O Events from within an action using any of these phrases:
+
+- "Publish event to I/O Events"
+- "Emit a CloudEvent"
+- "Send event to Adobe I/O"
+- "Fan-out events"
+- "Trigger downstream events with PublishEvent"
+- "Use PublishEvent in [action-name]"
+- "Add event publishing to [action-name]"
+- "Publish [event-type] event"
+- "Integrate PublishEvent"
+- "Notify via I/O Events"
+
+**Important**: This rule does NOT create new actions. It integrates `PublishEvent` into existing actions only.
+
+**Integration with Other Action Creation Rules:**
+
+When using action creation rules (RuntimeAction, WebhookAction, EventConsumerAction, OpenwhiskAction) and the developer mentions publishing events in the business logic:
+
+- **Automatically trigger this rule** after the action is created
+- Examples: "publish an event after processing", "emit a CloudEvent", "fan-out to other consumers", "notify via I/O Events"
+- This rule handles all PublishEvent setup, credential wiring, config changes, and code integration
+
+**If you need to create a new action first:**
+
+- Use the appropriate action creation command first
+- Then this rule will add PublishEvent integration to that action
+
+---
+
+## Step 1: Verify Prerequisites
+
+Before proceeding, verify:
+
+1. **Toolkit installed**: Check `@adobe-commerce/aio-toolkit` in `package.json` dependencies
+   - If NOT installed: `npm install @adobe-commerce/aio-toolkit`
+
+2. **AIO SDK installed**: Check `@adobe/aio-sdk` in `package.json` dependencies
+   - Required for `Core.AuthClient.generateAccessToken(params)` to obtain an IMS access token
+   - If NOT installed: `npm install @adobe/aio-sdk`
+   - Note: App Builder projects typically include this — run `npm list @adobe/aio-sdk` to confirm
+
+3. **Detect Language (TypeScript vs JavaScript)**:
+
+   **Check for TypeScript indicators (check ALL of these)**:
+   1. **Package Dependencies**: Look for `typescript` in `package.json` dependencies or devDependencies
+   2. **Config File**: Check if `tsconfig.json` exists in project root
+   3. **TypeScript Loaders**: Look for `ts-loader`, `ts-node`, or `@types/*` packages in `package.json`
+   4. **Existing Files**: Check for `.ts` or `.tsx` files in key directories (`actions/`, `src/`, `lib/`)
+
+   **Detection Logic**:
+   - **If ANY of the following are true → TypeScript project**:
+     - `typescript` package installed AND `tsconfig.json` exists
+     - Multiple TypeScript indicators (2 or more from above list)
+     - Existing `.ts` files found in `actions/` or `lib/` directories
+   - **Otherwise → JavaScript project**
+
+4. **Detect Project Structure**:
+   - Check `app.config.yaml` for `application:` section (root actions)
+   - Check `app.config.yaml` for `extensions:` section (extension point actions)
+   - If extensions exist, parse the `$include` path for the extension directory
+
+5. **Check Existing Actions**: List all existing actions and their file paths
+   - From root `actions/` directory
+   - From `[extension-path]/actions/` directory
+   - If NO actions exist: Stop and recommend creating an action first
+
+6. Only proceed to Step 2 after confirming all prerequisites
+
+---
+
+## Step 2: Ask Required Questions
+
+Before generating any code, ask the user the following questions:
+
+**Important**: Do not make assumptions — keep asking until all details are clear.
+
+1. **Target Action**: Which existing action do you want to add PublishEvent to?
+   - List all discovered actions for the user to choose from
+
+2. **Provider ID**: What is the Adobe I/O Events provider ID?
+   - Source: Adobe Developer Console → Your project → I/O Events → Provider ID
+   - Will be stored as `PROVIDER_ID` env var (recommended) or hardcoded (not recommended)
+
+3. **Event Code(s)**: What event type(s) will this action publish?
+   - Format: reverse-DNS, e.g. `com.adobe.commerce.order.created`
+   - Multiple codes if the action publishes different event types based on conditions
+   - Each code becomes the CloudEvent `type` field
+
+4. **Payload**: What data should the event carry?
+   - Describe the structure: e.g. `{ orderId, customerId, amount }`
+   - This becomes the CloudEvent `data` field
+
+5. **Subject** (optional): Should events include a `subject` field?
+   - Used for routing and filtering in downstream consumers
+   - Example: `orders/${orderId}`, `products/${sku}`
+   - If not needed, subject is omitted entirely
+
+6. **Event ID**: How should the event ID be assigned?
+   - **Auto-generate** (default): UUID v4 generated automatically per event
+   - **Custom**: Provide a specific ID (e.g. from a correlation ID in `params`)
+
+7. **Fan-out Pattern**: Does this action publish multiple events per invocation?
+   - **Single event**: One `publisher.execute()` call
+   - **Multiple events**: `Promise.all()` fan-out pattern (e.g. notify multiple downstream systems)
+   - If yes, ask: what are all the event codes and their payloads?
+
+---
+
+## Step 3: Confirm Implementation Details
+
+After receiving answers to ALL questions, present a comprehensive summary and **wait for user confirmation** before proceeding to Step 4:
+
+---
+
+### 📋 PublishEvent Integration Summary
+
+**Target Action:** `[action-name]`
+**Action Path:** `[path to action file]`
+**Language:** [TypeScript/JavaScript] (auto-detected)
+
+**Event Publishing Configuration:**
+
+- **Provider ID:** `$PROVIDER_ID` (from env var) or `[hardcoded-value]`
+- **Pattern:** [Single event / Fan-out with Promise.all()]
+
+**Event(s) to Publish:**
+
+[For single event:]
+- **Event Code:** `[event-code]`
+- **Payload:** `{ [payload fields] }`
+- **Subject:** `[subject pattern]` / Not included
+- **Event ID:** Auto-generated UUID / `[source field]`
+
+[For fan-out:]
+| Event Code | Payload | Subject |
+|---|---|---|
+| `[code-1]` | `{ [fields] }` | `[subject]` or — |
+| `[code-2]` | `{ [fields] }` | `[subject]` or — |
+
+**Environment Variables:**
+
+```bash
+# Adobe I/O Events — PublishEvent credentials
+IMS_ORG_ID=
+API_KEY=
+PROVIDER_ID=
+```
+
+📍 **Source:** Adobe Developer Console → Your project → Credentials + I/O Events
+
+---
+
+### ✅ What Will Be Changed
+
+**1. Action Implementation**
+- ✏️ `[action-path]/index.[js/ts]`
+  - Import `PublishEvent` from `@adobe-commerce/aio-toolkit`
+  - Import `Core` from `@adobe/aio-sdk`
+  - Generate IMS access token via `Core.AuthClient.generateAccessToken(params)`
+  - Construct `new PublishEvent(params.IMS_ORG_ID, params.API_KEY, accessToken, logger)`
+  - Call `publisher.execute(...)` [with `Promise.all()` if fan-out]
+  - Handle `result.status === 'failed'` responses
+
+**2. Action Configuration**
+- ✏️ `app.config.yaml` or `ext.config.yaml` (or `actions.config.yaml` if packaged)
+  - Add `include-ims-credentials: true` annotation (required for token generation)
+  - Add `IMS_ORG_ID: $IMS_ORG_ID`, `API_KEY: $API_KEY`, `PROVIDER_ID: $PROVIDER_ID` inputs
+
+**3. Environment Variables**
+- 📄/✏️ `.env` (project root) — add placeholder variables if not already present
+
+---
+
+**Should I proceed with this implementation?**
+
+---
+
+## Step 4: Generate Implementation
+
+### Step 4.1: Update the Action Code
+
+Add `PublishEvent` integration to the selected action.
+
+#### Single Event — JavaScript
+
+```javascript
+const { PublishEvent } = require('@adobe-commerce/aio-toolkit');
+const { Core } = require('@adobe/aio-sdk');
+
+// Inside your action handler (params, ctx):
+const { logger } = ctx;
+
+// Step 1: Generate IMS access token
+// Requires include-ims-credentials: true in app.config.yaml
+const tokenResponse = await Core.AuthClient.generateAccessToken(params);
+const accessToken = tokenResponse && tokenResponse.access_token;
+
+// Step 2: Construct publisher — throws if credentials are blank
+const publisher = new PublishEvent(
+  params.IMS_ORG_ID,
+  params.API_KEY,
+  accessToken,
+  logger   // optional: enables debug/info/error logs from the publisher
+);
+
+// Step 3: Publish the event
+const result = await publisher.execute(
+  params.PROVIDER_ID,            // required: target event provider
+  '[event-code]',                // required: CloudEvent type field
+  { /* payload fields */ },      // required: CloudEvent data field
+  undefined,                     // optional: omit for auto-generated UUID
+  undefined                      // optional: subject for routing/filtering
+);
+
+// Step 4: Handle result — execute() NEVER throws, always check status
+if (result.status === 'failed') {
+  logger.error({ message: '[action-name]-publish-failed', error: result.error });
+  // Decide whether to return an error or continue depending on business requirements
+}
+
+logger.info({ message: '[action-name]-published', eventId: result.eventId });
+```
+
+**TypeScript:** Same with `import` syntax and optional type imports:
+```typescript
+import { PublishEvent } from '@adobe-commerce/aio-toolkit';
+import type { PublishEventResult } from '@adobe-commerce/aio-toolkit';
+import { Core } from '@adobe/aio-sdk';
+```
+
+#### Fan-out Pattern — JavaScript
+
+```javascript
+const { PublishEvent } = require('@adobe-commerce/aio-toolkit');
+const { Core } = require('@adobe/aio-sdk');
+
+// Inside your action handler (params, ctx):
+const { logger } = ctx;
+
+const tokenResponse = await Core.AuthClient.generateAccessToken(params);
+const accessToken = tokenResponse && tokenResponse.access_token;
+
+const publisher = new PublishEvent(
+  params.IMS_ORG_ID,
+  params.API_KEY,
+  accessToken,
+  logger
+);
+
+// Publish multiple events in parallel
+const events = [
+  { code: '[event-code-1]', data: { /* payload */ }, subject: undefined },
+  { code: '[event-code-2]', data: { /* payload */ }, subject: undefined },
+];
+
+const results = await Promise.all(
+  events.map(({ code, data, subject }) =>
+    publisher.execute(params.PROVIDER_ID, code, data, undefined, subject)
+  )
+);
+
+// Collect failures — execute() never throws, so all results are always returned
+const failed = results.filter(r => r.status === 'failed');
+const published = results.filter(r => r.status === 'published');
+
+if (failed.length > 0) {
+  logger.error({
+    message: '[action-name]-publish-partial-failure',
+    failures: failed.map(r => r.error),
+  });
+}
+
+logger.info({
+  message: '[action-name]-published',
+  publishedCount: published.length,
+  failedCount: failed.length,
+});
+```
+
+#### With Custom Event ID and Subject
+
+```javascript
+const result = await publisher.execute(
+  params.PROVIDER_ID,
+  '[event-code]',
+  { /* payload */ },
+  params.correlationId,          // use existing correlation ID as event ID
+  `[resource-type]/${params.id}` // subject for routing — e.g. 'orders/123'
+);
+```
+
+### Step 4.2: Update Action Configuration
+
+Add `include-ims-credentials: true` and required inputs to the action's configuration.
+
+**In `app.config.yaml`, `ext.config.yaml`, or `actions.config.yaml`:**
+
+```yaml
+[action-name]:
+  function: [action-path]/index.[js/ts]
+  web: 'yes'  # or 'no' for event consumers
+  runtime: nodejs:22
+  annotations:
+    require-adobe-auth: [true/false]
+    final: true
+    include-ims-credentials: true   # REQUIRED: injects IMS credentials for token generation
+  inputs:
+    LOG_LEVEL: debug
+    # Adobe I/O Events — PublishEvent credentials
+    IMS_ORG_ID: $IMS_ORG_ID
+    API_KEY: $API_KEY
+    PROVIDER_ID: $PROVIDER_ID
+```
+
+> **Why `include-ims-credentials: true`?** This annotation tells Adobe App Builder to inject the IMS credential set into `params` at runtime. `Core.AuthClient.generateAccessToken(params)` reads from these injected fields to obtain a fresh access token per activation. Without this annotation, `generateAccessToken` will fail.
+
+### Step 4.3: Add Environment Variables
+
+Update the project root `.env` file with credential placeholders:
+
+1. **Check for `.env`**: Look in the project root directory
+2. **Create if missing**: Create `.env` in project root if it doesn't exist
+3. **Add only missing variables**: Do not overwrite values already present
+
+```bash
+# Adobe I/O Events — PublishEvent credentials
+IMS_ORG_ID=your-org@AdobeOrg
+API_KEY=
+PROVIDER_ID=
+```
+
+**How to get credentials:**
+1. Log in to [Adobe Developer Console](https://developer.adobe.com/console)
+2. Select your App Builder project
+3. **`IMS_ORG_ID`**: Organization → click your org name, copy the Org ID
+4. **`API_KEY`**: Credentials section → copy the Client ID
+5. **`PROVIDER_ID`**: I/O Events section → Event Providers → copy the provider ID
+
+**Security Notes:**
+- Never commit `.env` to version control — confirm `.env` is in `.gitignore`
+- `IMS_ORG_ID` and `API_KEY` are not secrets themselves but `API_KEY` combined with an access token grants API access — treat them accordingly
+- Access tokens are generated fresh per activation — no token storage required
+
+---
+
+## Step 5: Recommendations
+
+### A. Error Handling Strategy
+
+`execute()` **never throws** — it always returns a `PublishEventResult`. Choose your error handling based on business requirements:
+
+```javascript
+// Option 1: Hard fail — event publishing is critical
+if (result.status === 'failed') {
+  return RuntimeActionResponse.error(HttpStatus.INTERNAL_ERROR, `Event publish failed: ${result.error}`);
+}
+
+// Option 2: Soft fail — log and continue, event publishing is best-effort
+if (result.status === 'failed') {
+  logger.warn({ message: 'publish-skipped', error: result.error });
+  // continue processing
+}
+
+// Option 3: Fan-out partial failure — succeed if at least some events published
+const failed = results.filter(r => r.status === 'failed');
+if (failed.length === results.length) {
+  return RuntimeActionResponse.error(HttpStatus.INTERNAL_ERROR, 'All event publishes failed');
+}
+```
+
+### B. Constructor Throws vs execute() Does Not
+
+| Operation | Throws? | Action |
+|---|---|---|
+| `new PublishEvent(...)` | **Yes** — if any credential is blank | Wrap in try/catch, or ensure env vars are set |
+| `publisher.execute(...)` | **Never** — always returns `PublishEventResult` | Always check `result.status` |
+
+Since credentials come from `params` (action inputs), a blank credential will cause the constructor to throw inside your handler. `RuntimeAction`/`EventConsumerAction` catch all unhandled throws and return `500 'server error'` — but a more informative pattern is to check credentials before constructing:
+
+```javascript
+if (!params.IMS_ORG_ID || !params.API_KEY || !accessToken) {
+  logger.error({ message: '[action-name]-missing-credentials' });
+  return RuntimeActionResponse.error(HttpStatus.INTERNAL_ERROR, 'Missing event publishing credentials');
+}
+const publisher = new PublishEvent(params.IMS_ORG_ID, params.API_KEY, accessToken, logger);
+```
+
+### C. Testing & Verification
+
+1. **Unit tests**: Mock `Core.AuthClient.generateAccessToken` and `PublishEvent` — verify result handling
+2. **Integration tests**: Use a real I/O Events provider in a dev environment — confirm events appear in your consumer
+3. **Local**: `aio app dev` + `aio app logs` — check for `publish-failed` log entries
+4. **Adobe Developer Console**: I/O Events Debug Tracing shows published events in real time
+
+---
+
+## Key Components from @adobe-commerce/aio-toolkit
+
+### PublishEvent Constructor
+
+```typescript
+new PublishEvent(
+  imsOrgId: string,    // Adobe IMS Org ID — throws if blank
+  apiKey: string,      // Adobe API Key (Client ID) — throws if blank
+  accessToken: string, // IMS access token — throws if blank
+  logger?: any         // optional: enables publisher-level logging
+)
+```
+
+**Source for credentials:** `params.IMS_ORG_ID`, `params.API_KEY`, and a fresh token from `Core.AuthClient.generateAccessToken(params)`.
+
+### publishEvent.execute()
+
+```typescript
+async execute(
+  providerId: string,  // required: target I/O Events provider
+  eventCode: string,   // required: CloudEvent type (e.g. 'com.myapp.order.created')
+  payload: any,        // required: event data — cannot be null/undefined
+  eventId?: string,    // optional: custom ID, auto-generates UUID v4 if omitted
+  subject?: string     // optional: routing/filtering hint — omitted if falsy
+): Promise<PublishEventResult>
+```
+
+**Always resolves — never rejects.** All internal errors (blank providerId/eventCode, null payload, SDK init failure, publish failure) are caught and returned as `{ status: 'failed', error: '...' }`.
+
+### PublishEventResult
+
+```typescript
+interface PublishEventResult {
+  eventId: string;                    // event ID assigned on success; new UUID on failure
+  status: 'published' | 'failed';    // always check this field
+  publishedAt: string;                // ISO 8601 UTC timestamp
+  error?: string;                     // present only when status === 'failed'
+}
+```
+
+### CloudEvent Structure (built automatically)
+
+| Field | Value |
+|---|---|
+| `id` | `eventId` or auto-generated UUID v4 |
+| `source` | `` `urn:uuid:${providerId}` `` |
+| `type` | `eventCode` |
+| `datacontenttype` | `'application/json'` (fixed) |
+| `data` | `payload` |
+| `subject` | `subject` argument — omitted if falsy |
+
+---
+
+## Important Notes
+
+1. **Constructor throws, execute() does not**: Validate credentials before constructing, handle `result.status` after executing
+2. **`include-ims-credentials: true` is mandatory when using `Core.AuthClient`**: Without it, `Core.AuthClient.generateAccessToken(params)` returns nothing and `accessToken` will be blank, causing the constructor to throw
+3. **Alternative: `AdobeAuth.getToken()` for explicit S2S credentials**: If the action uses a dedicated Events technical account with explicit credentials (rather than the App Builder runtime's own injected credentials), use `AdobeAuth.getToken(params.IMS_CLIENT_ID, ..., ['AdobeID', 'openid', 'adobeio_api', 'event_receiver_api'])` instead of `Core.AuthClient`. No `include-ims-credentials: true` needed in this case — add IMS credential inputs to YAML instead. See "Using AdobeAuth" rule for details.
+4. **Token is generated fresh per activation**: No caching needed — each action invocation generates its own access token
+4. **Fan-out with `Promise.all()`**: Multiple `execute()` calls are independent — one failure does not cancel others
+5. **Subject is optional but useful**: Include it for downstream consumers that filter or route by subject
+6. **No custom event ID needed in most cases**: Auto-generated UUID v4 is fine unless you need correlation with an existing ID
+7. **Works with any action type**: RuntimeAction, WebhookAction, EventConsumerAction, GraphQlAction, OpenwhiskAction
+8. **Credentials from `params`**: Always inject `IMS_ORG_ID`, `API_KEY`, `PROVIDER_ID` as action inputs in the YAML config — they are not auto-injected
+9. **`.env` security**: Never commit credentials; ensure `.env` is in `.gitignore`
+10. **Peer dependency**: `@adobe/aio-sdk` must be installed in your project — it provides `Core.AuthClient`
+
+## Integration with Action Creation Rules
+
+**This rule should be referenced in other action creation rules when event publishing is mentioned:**
+
+### Trigger Patterns in Other Rules
+
+When developers mention these phrases during action creation in the "Business Logic" question:
+
+- "Publish an event after processing"
+- "Emit a CloudEvent"
+- "Notify via I/O Events"
+- "Fan-out to other consumers"
+- "Send event to Adobe I/O"
+- "Trigger downstream processing via events"
+- Any phrase containing "PublishEvent" or "I/O Events" + "publish"/"emit"/"send"
+
+**Action to take:**
+
+1. Complete the action creation first
+2. Then inform the user: "I see you need to publish events to Adobe I/O Events. Let me help you integrate PublishEvent."
+3. Trigger/reference the "Using PublishEvent" rule
+4. This rule handles credentials, config changes, and code integration
+
+**Example Flow:**
+
+```
+User: "Create a runtime action that processes orders and publishes an order.created event"
+AI: ✓ Detected TypeScript project
+AI: Creating runtime action... [generates .ts file]
+AI: I see you need to publish events to Adobe I/O Events. Let me integrate PublishEvent.
+AI: [Integrates PublishEvent into the action with token generation, config update, and env vars]
+```
+
+## Related Rules
+
+- **"Using AdobeAuth"** (`aio-toolkit-use-adobe-auth.mdc`) — use when `PublishEvent` needs a token from explicit S2S credentials instead of runtime-injected credentials (`Core.AuthClient`)

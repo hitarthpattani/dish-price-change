@@ -1,0 +1,337 @@
+---
+description: Object-Oriented Programming Best Practices for Actions, Lib, and Scripts
+globs: '**/{actions,lib,scripts}/**/*.{ts,js}'
+alwaysApply: true
+---
+
+# Object-Oriented Programming Best Practices
+
+## Overview
+
+This rule enforces essential OOP principles in `actions/`, `lib/`, and `scripts/` directories for maintainable, reusable code.
+
+## Core Principles
+
+### 1. Use Classes for Stateful Components
+
+**When to use classes:**
+- Components with multiple methods and shared state
+- Services that need initialization
+- Reusable utilities with configuration
+- Client builders and singletons
+
+```javascript
+// ✅ Good - Class with state and behavior
+class ProductService {
+  constructor(client, logger) {
+    this.client = client;
+    this.logger = logger;
+  }
+  
+  async getProduct(sku) {
+    this.logger.info(`Fetching product: ${sku}`);
+    return await this.client.get(`products/${sku}`);
+  }
+  
+  async updateProduct(sku, data) {
+    this.logger.info(`Updating product: ${sku}`);
+    return await this.client.put(`products/${sku}`, {}, data);
+  }
+}
+```
+
+### 2. Always Initialize Properties in Constructor
+
+**Initialize all properties that your class will use:**
+
+```javascript
+// ✅ Good - All properties initialized
+class OrderProcessor {
+  constructor(config, logger) {
+    this.config = config;
+    this.logger = logger;
+    this.client = null;
+    this.cache = new Map();
+    this.retryCount = 3;
+  }
+}
+
+// ❌ Bad - Properties not initialized
+class OrderProcessor {
+  constructor(config) {
+    this.config = config;
+    // this.client, this.logger, etc. are undefined!
+  }
+}
+```
+
+### 3. Use Private Fields and Methods
+
+**Keep implementation details private:**
+
+```javascript
+// JavaScript
+class UserManager {
+  #apiKey; // Private field
+  
+  constructor(apiKey) {
+    this.#apiKey = apiKey;
+  }
+  
+  #validateKey() { // Private method
+    return this.#apiKey.length > 0;
+  }
+  
+  async authenticate() {
+    if (!this.#validateKey()) {
+      throw new Error('Invalid API key');
+    }
+    // Use this.#apiKey
+  }
+}
+
+// TypeScript
+class UserManager {
+  private apiKey: string;
+  
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+  
+  private validateKey(): boolean {
+    return this.apiKey.length > 0;
+  }
+}
+```
+
+### 4. Use Dependency Injection
+
+**Inject dependencies instead of hardcoding them:**
+
+```javascript
+// ✅ Good - Dependencies injected
+class OrderService {
+  constructor(paymentProcessor, logger, emailService) {
+    this.paymentProcessor = paymentProcessor;
+    this.logger = logger;
+    this.emailService = emailService;
+  }
+  
+  async processOrder(order) {
+    await this.paymentProcessor.charge(order.total);
+    await this.emailService.send(order.confirmationEmail);
+    this.logger.info('Order processed');
+  }
+}
+
+// ❌ Bad - Dependencies hardcoded
+class OrderService {
+  constructor() {
+    this.paymentProcessor = new PaymentProcessor(); // Hardcoded!
+    this.emailService = new EmailService(); // Hardcoded!
+  }
+}
+```
+
+### 5. Prefer Composition Over Inheritance
+
+**Use composition (has-a) over inheritance (is-a) when possible:**
+
+```javascript
+// ✅ Good - Composition
+class OrderService {
+  constructor(paymentProcessor, inventoryManager) {
+    this.paymentProcessor = paymentProcessor;
+    this.inventoryManager = inventoryManager;
+  }
+  
+  async processOrder(order) {
+    await this.inventoryManager.reserve(order.items);
+    await this.paymentProcessor.charge(order.total);
+  }
+}
+
+// ❌ Bad - Unnecessary inheritance
+class OrderService extends PaymentProcessor {
+  // OrderService is NOT a PaymentProcessor
+}
+```
+
+## Common Patterns
+
+### Singleton Pattern (for expensive resources)
+
+```javascript
+class AdobeCommerceClientBuilder {
+  constructor(baseUrl, consumerKey, consumerSecret, accessToken, accessTokenSecret) {
+    this.baseUrl = baseUrl;
+    this.consumerKey = consumerKey;
+    this.consumerSecret = consumerSecret;
+    this.accessToken = accessToken;
+    this.accessTokenSecret = accessTokenSecret;
+    this.client = null; // Cached instance
+  }
+  
+  getClient() {
+    if (this.client) return this.client; // Return cached
+    
+    const connection = new Oauth1aConnection(
+      this.consumerKey,
+      this.consumerSecret,
+      this.accessToken,
+      this.accessTokenSecret
+    );
+    this.client = new AdobeCommerceClient(this.baseUrl, connection);
+    return this.client;
+  }
+}
+```
+
+### Resolver Pattern (for GraphQL actions)
+
+```javascript
+class GetUserResolver {
+  constructor(ctx) {
+    this.ctx = ctx;
+  }
+  
+  async execute() {
+    return async (args) => {
+      // args = GraphQL field arguments (e.g. { id } from getUser(id: ID!))
+      const { logger, headers, telemetry, params } = this.ctx;
+      // logger    - structured logger with auto-correlation
+      // headers   - incoming HTTP request headers
+      // telemetry - OpenTelemetry helper for custom spans
+      // params    - full OpenWhisk params (query, variables, operationName, action inputs)
+
+      logger.info({ message: 'getUser-execution', args });
+      
+      try {
+        // Business logic here
+        return result;
+      } catch (error) {
+        logger.error({ message: 'getUser-error', error: error.message });
+        throw error; // GraphQL returns this as a field error (HTTP 200 with errors[])
+      }
+    };
+  }
+}
+```
+
+## Anti-Patterns to Avoid
+
+### ❌ God Classes (doing too much)
+
+```javascript
+// ❌ Bad
+class ApplicationManager {
+  createUser() { }
+  deleteUser() { }
+  createProduct() { }
+  processOrder() { }
+  sendEmail() { }
+  generateReport() { }
+  // ... 50 more methods
+}
+
+// ✅ Good - Separate concerns
+class UserService { }
+class ProductService { }
+class OrderService { }
+class EmailService { }
+```
+
+### ❌ Anemic Models (data only, no behavior)
+
+```javascript
+// ❌ Bad
+class Order {
+  constructor(id, items, total) {
+    this.id = id;
+    this.items = items;
+    this.total = total;
+  }
+}
+// All logic in separate service
+
+// ✅ Good - Rich model with behavior
+class Order {
+  constructor(id, items) {
+    this.id = id;
+    this.items = items;
+    this.total = this.calculateTotal();
+  }
+  
+  calculateTotal() {
+    return this.items.reduce((sum, item) => sum + item.price, 0);
+  }
+  
+  addItem(item) {
+    this.items.push(item);
+    this.total = this.calculateTotal();
+  }
+}
+```
+
+### ❌ Tight Coupling (hardcoded dependencies)
+
+```javascript
+// ❌ Bad
+class OrderService {
+  constructor() {
+    this.emailService = new EmailService(); // Hardcoded!
+  }
+}
+
+// ✅ Good - Loose coupling
+class OrderService {
+  constructor(emailService) {
+    this.emailService = emailService; // Injected
+  }
+}
+```
+
+## Key Takeaways
+
+1. **Use classes for stateful, reusable components**
+2. **Initialize all properties in constructor**
+3. **Use private fields for encapsulation**
+4. **Inject dependencies, don't hardcode them**
+5. **Prefer composition over inheritance**
+6. **Keep classes focused (Single Responsibility)**
+7. **Avoid God classes and anemic models**
+
+## Examples from @adobe-commerce/aio-toolkit
+
+Follow the toolkit's class-based patterns:
+
+```javascript
+// GraphQL Resolver
+class HelloWorld {
+  constructor(ctx) {
+    this.ctx = ctx;
+  }
+  
+  async execute() {
+    return async (args) => {
+      const { logger, headers, telemetry, params } = this.ctx;
+      // Implementation
+    };
+  }
+}
+
+// Client Builder with Singleton
+class AdobeCommerceClientBuilder {
+  constructor(baseUrl, credentials) {
+    this.baseUrl = baseUrl;
+    this.credentials = credentials;
+    this.client = null;
+  }
+  
+  getClient() {
+    if (this.client) return this.client;
+    this.client = new AdobeCommerceClient(this.baseUrl, this.credentials);
+    return this.client;
+  }
+}
+```

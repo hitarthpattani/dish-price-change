@@ -1,0 +1,23 @@
+operations:
+  view:
+    - type: web
+      impl: index.html
+actions: actions
+web: web-src
+hooks:
+  pre-app-build: hooks/pre-app-build.js
+  pre-app-deploy: hooks/pre-app-deploy.js
+runtimeManifest:
+  packages:
+    admin-ui-sdk:
+      license: Apache-2.0
+      actions:
+        $include: actions/admin-ui-sdk/actions.config.yaml
+    commerce-events:
+      license: Apache-2.0
+      actions:
+        $include: actions/commerce/events/actions.config.yaml
+    example:
+      license: Apache-2.0
+      actions:
+        $include: actions/example/actions.config.yaml

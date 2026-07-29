@@ -1,0 +1,51 @@
+{
+  "sourceDoc": "/Users/hitarthpattani/Sites/Dish/SlingCommerce/adobecommerce/requirements/app-builder/Dish_PriceChange.md",
+  "sourceDocHash": "sha256:fedef53790941e19c07f0c8d38cf51c7ea4568468346b367fea3e7940d030110",
+  "sourceDocLastReadAt": "2026-07-29T00:00:00Z",
+  "starterKitRepo": "https://github.com/hitarthpattani/app-builder-starter-kit",
+  "starterKitClonedAt": "2026-07-29T00:00:00Z",
+  "targetProject": "/Users/hitarthpattani/Sites/Dish/app-builder/dish-price-change",
+  "projectName": "dish-price-change",
+  "moduleName": "Dish_PriceChange",
+  "deploymentTarget": "PaaS",
+  "syncCriticalScope": false,
+  "createdAt": "2026-07-29T00:00:00Z",
+  "phase": "prerequisites-paused-console-linking",
+  "prerequisites": {
+    "aioCliInstalled": true,
+    "npmDevSetupComplete": true,
+    "npmResetSetupComplete": false,
+    "adobeConsoleReady": false,
+    "pausedReason": "aio has no active IMS session; npm run reset/setup require interactive login. Developer paused to complete Console linking in their own terminal.",
+    "resumeInstructions": "Run: aio login; then `npm run reset && npm run setup` in the target project. Confirm .aio and .env exist. Then re-invoke the skill; resume at Phase 1f (strict validation) -> 1g (reinterpretation) -> 1h (finalize state) -> Phase 2 (Foundation).",
+    "checkedAt": "2026-07-29T00:00:00Z"
+  },
+  "reinterpretation": {
+    "blockingItems": [
+      "Internal I/O Events Provider",
+      "Custom Pricing & Bundle Data Sources"
+    ],
+    "nonBlockingItems": [
+      "Partner Billing + UMS JWT Token Acquisition",
+      "Admin Frequency -> Static Cron Schedule",
+      "CSV File-Drop / Firebear Plumbing & File-Cleanup Cron",
+      "AJO Error-Notification Events",
+      "Basic-Auth on Public Webhook Action",
+      "SKU->Date Package Mapping Storage Model"
+    ],
+    "developerChoice": "pending"
+  },
+  "foundation": { "status": "pending" },
+  "flows": [
+    { "id": 1, "name": "Webhook Renewal Ingestion", "status": "pending" },
+    { "id": 2, "name": "CSV Renewal Ingestion", "status": "pending" },
+    { "id": 3, "name": "Price Change Execution", "status": "pending" },
+    { "id": 4, "name": "Reporting Delivery", "status": "pending" },
+    { "id": 5, "name": "Maintenance Sweeps", "status": "pending" }
+  ],
+  "apiMesh": {
+    "status": "deferred",
+    "note": "Source module has no GraphQL Schema section (plan §5.7 absent). No mesh resolvers required by any flow.",
+    "deferredArtifacts": []
+  }
+}

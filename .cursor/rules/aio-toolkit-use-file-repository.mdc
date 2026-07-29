@@ -1,0 +1,502 @@
+---
+description: Adding FileRepository to Adobe I/O Runtime actions using @adobe-commerce/aio-toolkit
+globs: '**/{actions,lib}/**/*.{ts,js}'
+alwaysApply: false
+---
+
+# Using FileRepository
+
+## Trigger Conditions
+
+This rule applies when the user requests to add persistent file storage to an action using any of these phrases:
+
+- "Store data in App Builder"
+- "Save records to file storage"
+- "Persist data across invocations"
+- "Use FileRepository"
+- "Add file storage to [action-name]"
+- "CRUD file operations in App Builder"
+- "Save to Adobe I/O Files"
+- "Create a repository for [entity]"
+- "Store [entity] data"
+- "List / load / save / delete records"
+
+**Important**: This rule does NOT create new actions. It adds persistent file storage to existing actions only.
+
+**Integration with Other Action Creation Rules:**
+
+When using action creation rules (RuntimeAction, WebhookAction, EventConsumerAction, GraphQlAction, OpenwhiskAction) and the developer mentions storing or persisting data:
+
+- **Automatically trigger this rule** after the action is created
+- Examples: "save the result to storage", "persist records", "CRUD operations on [entity]", "store data between invocations"
+- This rule handles creating the repository class, integrating it into the action, and documenting ID/overwrite behaviour
+
+**If you need to create a new action first:**
+
+- Use the appropriate action creation command first
+- Then this rule will add FileRepository integration to that action
+
+---
+
+## Step 1: Verify Prerequisites
+
+Before proceeding, verify:
+
+1. **Toolkit installed**: Check `@adobe-commerce/aio-toolkit` in `package.json` dependencies
+   - If NOT installed: `npm install @adobe-commerce/aio-toolkit`
+
+2. **App Builder Files Services API**: `FileRepository` uses `@adobe/aio-sdk`'s Files client, which is included with standard App Builder credentials. No additional configuration is required — the Files Services API is automatically available in App Builder workspaces.
+
+3. **Detect Language (TypeScript vs JavaScript)**:
+
+   **Check for TypeScript indicators (check ALL of these)**:
+   1. **Package Dependencies**: Look for `typescript` in `package.json` dependencies or devDependencies
+   2. **Config File**: Check if `tsconfig.json` exists in project root
+   3. **TypeScript Loaders**: Look for `ts-loader`, `ts-node`, or `@types/*` packages in `package.json`
+   4. **Existing Files**: Check for `.ts` or `.tsx` files in key directories (`actions/`, `src/`, `lib/`)
+
+   **Detection Logic**:
+   - **If ANY of the following are true → TypeScript project**:
+     - `typescript` package installed AND `tsconfig.json` exists
+     - Multiple TypeScript indicators (2 or more from above list)
+     - Existing `.ts` files found in `actions/` or `lib/` directories
+   - **Otherwise → JavaScript project**
+
+4. **Detect Project Structure**:
+   - Check `app.config.yaml` for `application:` section (root actions)
+   - Check `app.config.yaml` for `extensions:` section (extension point actions)
+   - If extensions exist, parse the `$include` path for the extension directory
+
+5. **Check Existing Actions**: List all existing actions and their file paths
+   - From root `actions/` directory
+   - From `[extension-path]/actions/` directory
+   - If NO actions exist: Stop and recommend creating an action first
+
+6. Only proceed to Step 2 after confirming all prerequisites
+
+---
+
+## Step 2: Ask Required Questions
+
+Before generating any code, ask the user the following questions:
+
+**Important**: Do not make assumptions — keep asking until all details are clear.
+
+1. **Entity Name**: What entity will this repository store?
+   - Examples: `Order`, `Product`, `Customer`, `Session`, `Config`
+   - Used to name the repository class (e.g. `OrderRepository`) and derive a default storage path
+
+2. **Base Filepath**: What base directory path should records be stored under?
+   - Format: `/[app-name]/[entity-plural]` — e.g. `/my-app/orders`
+   - All records are stored as `{filepath}/{id}.json`
+   - **Default suggestion**: derive from entity name, e.g. `Order` → `/my-app/orders`
+
+3. **Target Action(s)**: Which existing action(s) will use this repository?
+   - List all discovered actions for the user to choose from
+   - Multiple actions can share the same repository class
+
+4. **CRUD Operations**: Which operations are needed?
+   - **`list()`** — retrieve all records (reads every file; for large datasets use `metadata()` instead)
+   - **`metadata()`** — retrieve file metadata without reading content (fast; timestamps, sizes, existence checks)
+   - **`load(id)`** — retrieve a single record by ID
+   - **`save(payload, id?, overwrite?)`** — create or update a record
+   - **`delete(ids[])`** — delete one or more records
+   - Ask: which of these does the action need?
+
+5. **ID Strategy** (for `save()` operations): How should record IDs be assigned?
+   - **Auto-generated** (default): millisecond timestamp (`new Date().getTime()`)
+   - **From payload**: use `payload.id` when the record already carries its own ID
+   - **Explicit parameter**: pass a specific ID from `params` (e.g. `params.orderId`) — will be sanitized (`order-123` → `order_123`)
+
+6. **Overwrite vs Merge** (for `save()` operations):
+   - **Merge** (default, `overwrite: false`): shallow-merges new payload into existing record — existing fields not in the payload are preserved
+   - **Overwrite** (`overwrite: true`): replaces the entire file — existing fields are lost
+   - Ask: which behaviour is needed for each save operation?
+
+---
+
+## Step 3: Confirm Implementation Details
+
+After receiving answers to ALL questions, present a comprehensive summary and **wait for user confirmation** before proceeding to Step 4:
+
+---
+
+### 📋 FileRepository Integration Summary
+
+**Entity:** `[EntityName]`
+**Repository Class:** `[EntityName]Repository`
+**Storage Path:** `[/app-name/entity-plural]`
+**Language:** [TypeScript/JavaScript] (auto-detected)
+
+**Target Action(s):**
+- `[action-name]` → `[path/to/action/index.js]`
+
+**Operations to Integrate:**
+
+| Operation | Details |
+|---|---|
+| `list()` | Retrieve all records |
+| `metadata()` | Retrieve file metadata without content |
+| `load(id)` | Load single record by `[params.field]` |
+| `save(payload, id?, overwrite?)` | ID: [auto / payload.id / params.field]; Overwrite: [true/false] |
+| `delete(ids[])` | Delete records by `[params.field]` |
+
+---
+
+### ✅ What Will Be Changed
+
+**1. New Repository Class**
+- ➕ `lib/[entityName]Repository.[js/ts]`
+  - Extends `FileRepository` with fixed filepath `[/app-name/entity-plural]`
+  - Reusable across all actions in the project
+
+**2. Action Implementation**
+- ✏️ `[action-path]/index.[js/ts]`
+  - Import `[EntityName]Repository` from `lib/`
+  - Construct `new [EntityName]Repository()` inside the handler
+  - Add selected CRUD operations with error handling
+
+**3. No Configuration Changes Required**
+- `FileRepository` requires no extra inputs in `app.config.yaml` — standard App Builder credentials are sufficient
+
+---
+
+**Should I proceed with this implementation?**
+
+---
+
+## Step 4: Generate Implementation
+
+### Step 4.1: Create the Repository Class
+
+Create a dedicated repository class in `lib/`. Always extend `FileRepository` rather than using it directly — this encapsulates the storage path and makes the class reusable.
+
+#### JavaScript
+
+```javascript
+// lib/[entityName]Repository.js
+const { FileRepository } = require('@adobe-commerce/aio-toolkit');
+
+class [EntityName]Repository extends FileRepository {
+  constructor() {
+    super('[/app-name/entity-plural]');
+  }
+}
+
+module.exports = [EntityName]Repository;
+```
+
+#### TypeScript
+
+```typescript
+// lib/[entityName]Repository.ts
+import { FileRepository } from '@adobe-commerce/aio-toolkit';
+
+export class [EntityName]Repository extends FileRepository {
+  constructor() {
+    super('[/app-name/entity-plural]');
+  }
+}
+```
+
+> Place this file in a shared `lib/` directory at the same level as `actions/` so it can be imported from any action.
+
+---
+
+### Step 4.2: Integrate into the Target Action
+
+Add the repository to the existing action. Include only the CRUD operations selected in Step 2.
+
+#### List All Records — JavaScript
+
+```javascript
+const { HttpMethod, RuntimeAction, RuntimeActionResponse } = require('@adobe-commerce/aio-toolkit');
+const [EntityName]Repository = require('../../lib/[entityName]Repository');
+
+exports.main = RuntimeAction.execute(
+  '[action-name]',
+  [HttpMethod.POST],
+  [],
+  ['Authorization'],
+  async (params, ctx) => {
+    const repo = new [EntityName]Repository();
+    const records = await repo.list();
+    return RuntimeActionResponse.success(records);
+  }
+);
+```
+
+#### Load a Single Record — JavaScript
+
+```javascript
+// Check for empty record — load() returns {} when the file does not exist
+const record = await repo.load(params.id);
+if (!record.id) {
+  return RuntimeActionResponse.error(HttpStatus.NOT_FOUND, `[EntityName] '${params.id}' not found`);
+}
+return RuntimeActionResponse.success(record);
+```
+
+#### Save a Record (auto-generated ID) — JavaScript
+
+```javascript
+const savedId = await repo.save({
+  // payload fields
+  status: 'active',
+  ...params,
+});
+
+// save() returns null on failure — always check
+if (!savedId) {
+  return RuntimeActionResponse.error(HttpStatus.INTERNAL_ERROR, 'Failed to save [entityName]');
+}
+
+return RuntimeActionResponse.success({ id: savedId });
+```
+
+#### Save with Explicit ID (merge, default) — JavaScript
+
+```javascript
+// ID from params is sanitized: 'order-123' → 'order_123'
+const savedId = await repo.save(
+  { status: params.status },
+  params.[entityId]   // explicit ID takes precedence over payload.id
+);
+
+if (!savedId) {
+  return RuntimeActionResponse.error(HttpStatus.INTERNAL_ERROR, 'Failed to update [entityName]');
+}
+
+return RuntimeActionResponse.success({ id: savedId });
+```
+
+#### Save with Overwrite (replace entire file) — JavaScript
+
+```javascript
+// overwrite: true replaces the entire file — no merging with existing content
+const savedId = await repo.save(
+  {
+    // provide ALL fields — partial updates are not possible with overwrite
+    status: params.status,
+    customerId: params.customerId,
+  },
+  params.[entityId],
+  true  // overwrite: true
+);
+```
+
+#### Delete Records — JavaScript
+
+```javascript
+// Pass exact IDs as returned by save(), list(), or load()
+// IDs are NOT sanitized by delete() — do not transform them before passing
+const remaining = await repo.delete(params.ids);
+return RuntimeActionResponse.success(remaining);
+```
+
+#### Get Metadata (without reading content) — JavaScript
+
+```javascript
+// All records — no JSON reads, fast for large datasets
+const allMeta = await repo.metadata();
+
+// Single record metadata
+const singleMeta = params.id ? await repo.metadata(params.id) : null;
+
+return RuntimeActionResponse.success({ all: allMeta, single: singleMeta });
+```
+
+**TypeScript:** Same patterns with `import` syntax and optional type imports:
+
+```typescript
+import { FileRepository } from '@adobe-commerce/aio-toolkit';
+import type { FileRecord, FileMetadata } from '@adobe-commerce/aio-toolkit';
+```
+
+---
+
+## Step 5: Recommendations
+
+### A. Always Check save() Return Value
+
+`save()` is the only method that catches errors internally — it returns `null` on failure rather than throwing. All other methods propagate errors from the Files SDK.
+
+```javascript
+const savedId = await repo.save(payload, id);
+if (!savedId) {
+  // Write failed — log and return an appropriate error response
+  logger.error({ message: '[action-name]-save-failed' });
+  return RuntimeActionResponse.error(HttpStatus.INTERNAL_ERROR, 'Storage write failed');
+}
+```
+
+### B. Checking for a Missing Record
+
+`load()` returns `{}` (empty object cast to `FileRecord`) when no file exists — it does not throw. Always check for record existence before accessing fields:
+
+```javascript
+const record = await repo.load(params.id);
+if (!record.id) {
+  // Record does not exist
+  return RuntimeActionResponse.error(HttpStatus.NOT_FOUND, `[EntityName] '${params.id}' not found`);
+}
+// record is valid — use record.id, record.status, etc.
+```
+
+### C. ID Sanitization Rules
+
+When an explicit `id` is passed to `save()`, it is sanitized:
+
+| Input | Result |
+|---|---|
+| `'order-123'` | `'order_123'` |
+| `'my.record'` | `'my_record'` |
+| `'valid_id_123'` | `'valid_id_123'` (unchanged) |
+| `'---'` | `'1714234567890'` (timestamp fallback) |
+
+- Characters outside `[a-zA-Z0-9_]` are replaced with `_`
+- If the result is empty or all underscores, falls back to millisecond timestamp
+- `payload.id` is **not** sanitized — only explicit `id` parameter is
+- IDs passed to `delete()` are **never** sanitized — pass exact IDs from `save()`/`list()`/`load()`
+
+### D. Timestamps Are From the File System
+
+`createdAt` and `updatedAt` fields on `FileRecord` come from file system metadata (creation time and last modified time). They are **not stored inside the JSON file**. This means:
+- They are automatically updated on every `save()` call — no manual timestamp management needed
+- You cannot set or override them via payload — they are stripped from `payload` before writing
+
+### E. Performance: list() vs metadata()
+
+| Situation | Use |
+|---|---|
+| Need full record content | `list()` — reads every JSON file |
+| Only need sizes, timestamps, or existence | `metadata()` — no file content reads, much faster for large datasets |
+| Check if a specific record exists | `metadata(id)` — single metadata fetch |
+
+### F. Overwrite vs Merge — Choose Carefully
+
+| Scenario | Overwrite Setting |
+|---|---|
+| Partial update (e.g. update status only) | `overwrite: false` (default) — merges with existing |
+| Full replacement (e.g. PUT semantics) | `overwrite: true` — replaces entire file |
+| New record | Both behave the same — file does not exist yet |
+
+> **Warning**: With `overwrite: true`, any fields not in the new payload are permanently lost. Use it only when you intend full replacement (PUT), not partial update (PATCH).
+
+---
+
+## Key Components from @adobe-commerce/aio-toolkit
+
+### FileRepository Constructor
+
+```typescript
+constructor(filepath: string)
+```
+
+- `filepath` — base directory for all file operations; all records stored as `{filepath}/{id}.json`
+- Files SDK client is initialized lazily on first operation and cached for the lifetime of the instance
+
+### FileRepository Methods
+
+```typescript
+// List all records — reads every file in the directory
+async list(): Promise<FileRecord[]>
+
+// Get metadata only — no file content reads
+async metadata(id?: string): Promise<FileMetadata | FileMetadata[]>
+
+// Load a single record by ID — returns {} if not found
+async load(id: string): Promise<FileRecord>
+
+// Save a record — returns ID on success, null on failure
+async save(
+  payload: Partial<FileRecord>,
+  id?: string | null,     // explicit ID — sanitized; overrides payload.id
+  overwrite?: boolean     // default: false (merge)
+): Promise<string | null>
+
+// Delete records — returns updated list() after deletion
+async delete(ids: string[]): Promise<FileRecord[]>
+```
+
+### FileRecord Type
+
+```typescript
+interface FileRecord {
+  id: string;
+  createdAt: string;   // ISO 8601 UTC — from file system metadata, NOT stored in JSON
+  updatedAt: string;   // ISO 8601 UTC — from file system metadata, NOT stored in JSON
+  [key: string]: any;  // your payload fields
+}
+```
+
+### FileMetadata Type
+
+```typescript
+interface FileMetadata {
+  name: string;
+  creationTime: Date;
+  lastModified: Date;
+  etag: string;
+  contentLength: number;
+  contentType: string;
+  isDirectory: boolean;
+  isPublic: boolean;
+  url: string;
+}
+```
+
+### Exports
+
+```typescript
+import { FileRepository } from '@adobe-commerce/aio-toolkit';
+import type { FileRecord, FileMetadata } from '@adobe-commerce/aio-toolkit';
+```
+
+---
+
+## Important Notes
+
+1. **Always extend FileRepository**: Create a dedicated subclass per entity — do not use `FileRepository` directly with a hardcoded path in action code
+2. **save() returns null on failure**: It is the only method that silently catches errors — always check the return value
+3. **load() returns {} on missing file**: Never throws when the file doesn't exist — check `!record.id` before using the record
+4. **Timestamps are file system metadata**: `createdAt`/`updatedAt` are never stored in the JSON file — they come from the Files SDK metadata on every `load()` or `list()` call
+5. **IDs passed to delete() are NOT sanitized**: Pass the exact ID strings returned by `save()`, `list()`, or `load()`
+6. **No extra credentials needed**: FileRepository uses standard App Builder credentials — no additional inputs are required in `app.config.yaml`
+7. **Files Services API must be enabled**: The App Builder workspace must have the Files Services API enabled in Adobe Developer Console (enabled by default in new App Builder projects)
+8. **Filepath convention**: Use `/[app-name]/[entity-plural]` for the base path — e.g. `/my-app/orders`, `/my-app/products`
+9. **Lazy SDK initialization**: The Files SDK client is created on the first operation, not in the constructor — no setup overhead if the repository is instantiated but not used
+10. **Works with any action type**: RuntimeAction, WebhookAction, EventConsumerAction, GraphQlAction, OpenwhiskAction
+
+## Integration with Action Creation Rules
+
+**This rule should be referenced in other action creation rules when data storage is mentioned:**
+
+### Trigger Patterns in Other Rules
+
+When developers mention these phrases during action creation in the "Business Logic" question:
+
+- "Store data"
+- "Persist records"
+- "Save to file storage"
+- "CRUD operations on [entity]"
+- "Store data between invocations"
+- "Create a repository"
+- Any phrase containing "FileRepository" or "file storage" + "save"/"list"/"load"/"delete"
+
+**Action to take:**
+
+1. Complete the action creation first
+2. Then inform the user: "I see you need to persist data. Let me help you integrate FileRepository."
+3. Trigger/reference the "Using FileRepository" rule
+4. This rule handles creating the repository class, integrating it into the action, and all ID/overwrite guidance
+
+**Example Flow:**
+
+```
+User: "Create a runtime action that saves order records to persistent storage"
+AI: ✓ Detected JavaScript project
+AI: Creating runtime action... [generates index.js]
+AI: I see you need persistent storage. Let me integrate FileRepository.
+AI: [Creates lib/OrderRepository.js and integrates it into the action]
+```

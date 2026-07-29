@@ -1,0 +1,119 @@
+# CI/CD Production Deployment Pipeline Configuration
+# This pipeline runs comprehensive quality checks and deploys to production environment
+# Triggers on pushes to main/master/production branches and GitHub releases
+
+name: CI/CD Production Deploy Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [released]
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version: ['20']
+        os: [ubuntu-latest]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Lint Code (ESLint)
+        run: npm run lint:check
+
+      - name: Format Code (Prettier)
+        run: npm run format:check
+
+      - name: Tests (Unit Tests)
+        run: npm run test:ci
+
+      - name: Security Audit (Advisory)
+        run: npm run security:audit || true
+        continue-on-error: true
+
+  deploy:
+    name: Deploy to Prod
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 1
+      matrix:
+        node-version: ['20']
+        os: [ubuntu-latest]
+    timeout-minutes: 20
+    needs: [code-quality]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Setup AIO CLI
+        uses: adobe/aio-cli-setup-action@1.3.0
+        with:
+          os: ${{ matrix.os }}
+          version: 10.x.x
+
+      - name: Validate Authorization (AIO CLI)
+        uses: adobe/aio-apps-action@4.1.0
+        with:
+          os: ${{ matrix.os }}
+          command: oauth_sts
+          CLIENTID: ${{ secrets.CLIENTID_PROD }}
+          CLIENTSECRET: ${{ secrets.CLIENTSECRET_PROD }}
+          TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCID_PROD }}
+          TECHNICALACCOUNTEMAIL: ${{ secrets.TECHNICALACCEMAIL_PROD }}
+          IMSORGID: ${{ secrets.IMSORGID_PROD }}
+          SCOPES: ${{ secrets.SCOPES_PROD }}
+
+      - name: Build Application (AIO CLI)
+        env:
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE_PROD }}
+          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID_PROD }}
+          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET_PROD }}
+          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID_PROD }}
+          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES_PROD }}
+        uses: adobe/aio-apps-action@4.1.0
+        with:
+          os: ${{ matrix.os }}
+          command: build
+
+      - name: Deploy Application (AIO CLI)
+        env:
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE_PROD }}
+          AIO_RUNTIME_AUTH: ${{ secrets.AIO_RUNTIME_AUTH_PROD }}
+          AIO_PROJECT_ID: ${{ secrets.AIO_PROJECT_ID_PROD }}
+          AIO_PROJECT_NAME: ${{ secrets.AIO_PROJECT_NAME_PROD }}
+          AIO_PROJECT_ORG_ID: ${{ secrets.AIO_PROJECT_ORG_ID_PROD }}
+          AIO_PROJECT_WORKSPACE_ID: ${{ secrets.AIO_PROJECT_WORKSPACE_ID_PROD }}
+          AIO_PROJECT_WORKSPACE_NAME: ${{ secrets.AIO_PROJECT_WORKSPACE_NAME_PROD }}
+          AIO_PROJECT_WORKSPACE_DETAILS_SERVICES: ${{ secrets.AIO_PROJECT_WORKSPACE_DETAILS_SERVICES_PROD }}
+          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID_PROD }}
+          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET_PROD }}
+          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID_PROD }}
+          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES_PROD }}
+        uses: adobe/aio-apps-action@4.1.0
+        with:
+          os: ${{ matrix.os }}
+          command: deploy

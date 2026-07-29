@@ -1,0 +1,118 @@
+# CI/CD Stage Deployment Pipeline Configuration
+# This pipeline runs comprehensive quality checks and deploys to staging environment
+# Triggers on pushes to stage/staging branches with full CI/CD validation
+
+name: CI/CD Stage Deploy Pipeline
+
+on:
+  push:
+    branches:
+      - stage
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version: ['20']
+        os: [ubuntu-latest]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Lint Code (ESLint)
+        run: npm run lint:check
+
+      - name: Format Code (Prettier)
+        run: npm run format:check
+
+      - name: Tests (Unit Tests)
+        run: npm run test:ci
+
+      - name: Security Audit (Advisory)
+        run: npm run security:audit || true
+        continue-on-error: true
+
+  deploy:
+    name: Deploy to Stage
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 1
+      matrix:
+        node-version: ['20']
+        os: [ubuntu-latest]
+    timeout-minutes: 20
+    needs: [code-quality]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Setup AIO CLI
+        uses: adobe/aio-cli-setup-action@1.3.0
+        with:
+          os: ${{ matrix.os }}
+          version: 10.x.x
+
+      - name: Validate Authorization (AIO CLI)
+        uses: adobe/aio-apps-action@4.1.0
+        with:
+          os: ${{ matrix.os }}
+          command: oauth_sts
+          CLIENTID: ${{ secrets.CLIENTID_STAGE }}
+          CLIENTSECRET: ${{ secrets.CLIENTSECRET_STAGE }}
+          TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCID_STAGE }}
+          TECHNICALACCOUNTEMAIL: ${{ secrets.TECHNICALACCEMAIL_STAGE }}
+          IMSORGID: ${{ secrets.IMSORGID_STAGE }}
+          SCOPES: ${{ secrets.SCOPES_STAGE }}
+
+      - name: Build Application (AIO CLI)
+        env:
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE_STAGE }}
+          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID_STAGE }}
+          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET_STAGE }}
+          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID_STAGE }}
+          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES_STAGE }}
+        uses: adobe/aio-apps-action@4.1.0
+        with:
+          os: ${{ matrix.os }}
+          command: build
+
+      - name: Deploy Application (AIO CLI)
+        env:
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE_STAGE }}
+          AIO_RUNTIME_AUTH: ${{ secrets.AIO_RUNTIME_AUTH_STAGE }}
+          AIO_PROJECT_ID: ${{ secrets.AIO_PROJECT_ID_STAGE }}
+          AIO_PROJECT_NAME: ${{ secrets.AIO_PROJECT_NAME_STAGE }}
+          AIO_PROJECT_ORG_ID: ${{ secrets.AIO_PROJECT_ORG_ID_STAGE }}
+          AIO_PROJECT_WORKSPACE_ID: ${{ secrets.AIO_PROJECT_WORKSPACE_ID_STAGE }}
+          AIO_PROJECT_WORKSPACE_NAME: ${{ secrets.AIO_PROJECT_WORKSPACE_NAME_STAGE }}
+          AIO_PROJECT_WORKSPACE_DETAILS_SERVICES: ${{ secrets.AIO_PROJECT_WORKSPACE_DETAILS_SERVICES_STAGE }}
+          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID_STAGE }}
+          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET_STAGE }}
+          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID_STAGE }}
+          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES_STAGE }}
+        uses: adobe/aio-apps-action@4.1.0
+        with:
+          os: ${{ matrix.os }}
+          command: deploy
+          noPublish: true
