@@ -22,7 +22,7 @@ updated to match these conventions on future runs.
 | 6   | Sample cleanup              | Removed only `example` + `commerce/events` action packages                                                                                                          | Also removed the `user` sample ABDB collection/repository **and** their tests                                                                                     | `SKILL.md` §2c                                     |
 | 7   | Tests                       | **No tests generated for lib stubs** → 100% coverage gate broke → threshold lowered to 0                                                                            | Added a co-located `test/**` stub per module; **restored coverage gate to 100%**                                                                                  | `SKILL.md` §2d/§2g + a new test template           |
 | 8   | Deploy guard (env-specific) | `hooks/pre-app-deploy.js` blocks `stage`/`production`                                                                                                               | Changed `'stage'` → `'skip_stage'` to allow deploy to their Stage workspace                                                                                       | none (workspace-specific, not a generator concern) |
-| 9   | `.env.example`              | Created at project root                                                                                                                                             | Untracked — `.gitignore` line 13 `.env*` ignores `.env.example`                                                                                                   | `03-env-example.md` / `.gitignore`                 |
+| 9   | `.env.example`              | Created at project root but gitignored by `.env*`                                                                                                                   | Added `!.env.example` negation to `.gitignore` so it is tracked (`.env` stays ignored) — RESOLVED                                                                 | `03-env-example.md` / `.gitignore`                 |
 
 ## Details and recommended template edits
 
@@ -122,10 +122,15 @@ to 100% over the stubs so the starter kit's coverage gate never has to be relaxe
 deploy to the developer's **Stage** workspace (their Console link is Stage, not a dedicated dev
 workspace). This is a local/workspace workaround; no template change warranted.
 
-### 9 — `.env.example` is gitignored
+### 9 — `.env.example` was gitignored (RESOLVED in this project)
 
 The generator wrote `.env.example` at the project root, but the starter kit's `.gitignore` line 13
-(`.env*`) ignores it, so it is never committed.
+(`.env*`) ignored it, so it would never be committed.
 
-**Template edit — `03-env-example.md`:** either write the example env to a non-ignored path/name, or
-add a `!.env.example` negation to `.gitignore`, so the documented env template is actually tracked.
+**Resolved here:** a `!.env.example` negation was added to `.gitignore` immediately after the `.env*`
+line, so `.env.example` is now tracked while `.env` stays ignored. Verified: `git status` reports
+`.env.example` as untracked (ready to add) and `.env` still ignored.
+
+**Template edit — `03-env-example.md` (recommended for the skill):** have the generator add the
+`!.env.example` negation to `.gitignore` as part of writing `.env.example` (or write the example env
+to a non-ignored path), so the documented env template is tracked on every run without manual fixup.

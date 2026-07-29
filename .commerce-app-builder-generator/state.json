@@ -76,8 +76,8 @@
     "generatedFilesNote": "Paths reflect the developer's post-generation refactor (committed 4b83dca). The generator's ORIGINAL emitted paths differed (lib/recurly, lib/partner-billing, lib/ums-reporting, lib/logger, lib/errors, lib/events/publisher.ts, lib/reporting/builder.ts, lib/utils/params.ts, and snake_case collection/repository dirs). See GENERATOR-DELTA.md at project root for the full mapping.",
     "removedSamplePackages": ["example", "commerce/events (checkout-submit)"],
     "extensionId": "DishPriceChange",
-    "envExampleTracked": false,
-    "envExampleNote": ".env.example is gitignored by .gitignore line 13 (.env*), so it exists on disk but is not committed.",
+    "envExampleTracked": true,
+    "envExampleNote": ".env.example was initially gitignored by .gitignore (.env*). Resolved by adding a '!.env.example' negation right after the .env* line, so .env.example is now tracked while .env stays ignored. Verified via git status.",
     "validated": true,
     "validatedAt": "2026-07-29T00:00:00Z",
     "validationNotes": "dev:validate exits 0. Generator left the 100% coverage gate broken (no lib stub tests) and temporarily lowered jest.config.js thresholds to 0. The developer then ADDED a co-located stub test per lib module and RESTORED the jest global coverage gate to 100% (all four metrics). Current state: full 100% gate in force and passing.",
@@ -99,7 +99,8 @@
         "APP_SLUG and APP_NAME centralized into actions/constants.ts (imported by the registration action).",
         "Removed the starter-kit sample lib/database/collection/user + repository/user and their tests (generator had left them).",
         "Added a co-located test/** stub per lib module and restored jest coverage gate to 100%.",
-        "hooks/pre-app-deploy.js: stage-guard changed 'stage' -> 'skip_stage' to allow deploy to the linked Stage workspace (environment-specific, not a generator concern)."
+        "hooks/pre-app-deploy.js: stage-guard changed 'stage' -> 'skip_stage' to allow deploy to the linked Stage workspace (environment-specific, not a generator concern).",
+        ".gitignore: added '!.env.example' negation after the .env* line so the generated .env.example is tracked (.env stays ignored)."
       ]
     }
   },
