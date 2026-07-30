@@ -4,6 +4,8 @@
 
 import React from 'react'
 
+export type ActionCallHeaders = Record<string, string>
+
 export interface NavigationButton {
   label: string
   path: string

@@ -10,3 +10,15 @@ notification:
   limits:
     timeout: 55000
     memory: 512
+csv-import:
+  function: ../../../../build/actions/renewal/csv-import/index.js
+  web: 'yes'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+  annotations:
+    require-adobe-auth: true
+    final: true
+  limits:
+    timeout: 300000
+    memory: 1024

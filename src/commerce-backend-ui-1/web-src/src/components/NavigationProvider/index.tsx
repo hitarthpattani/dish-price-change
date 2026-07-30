@@ -5,7 +5,9 @@
 import React, { createContext, useContext } from 'react'
 import { View, Heading, Text } from '@adobe/react-spectrum'
 import HomeIcon from '@spectrum-icons/workflow/Home'
-import { NavigationButton, NavigationRoute } from './types'
+import UploadToCloudIcon from '@spectrum-icons/workflow/UploadToCloud'
+import { ActionCallHeaders, NavigationButton, NavigationRoute } from './types'
+import { RenewalImport } from '@components/RenewalImport'
 
 // Navigation registry (plan §5.6). Foundation seeds a default Home entry so the SPA shell renders;
 // per-flow builds (§N.4.e / template 08) append their button + route entries to the arrays below:
@@ -13,16 +15,26 @@ import { NavigationButton, NavigationRoute } from './types'
 //   Flow 3 §8.4.e — Active Mapping  → '/active-mapping'
 //   Flow 3 §8.4.e — Pause Mapping   → '/pause-mapping'
 
-export const navigationButtons: NavigationButton[] = [
+// actionCallHeaders kept in the signature for parity with getNavigationRoutes, in case a future
+// button entry needs to gate on auth state (e.g. role-based visibility).
+export const getNavigationButtons = (_actionCallHeaders: ActionCallHeaders): NavigationButton[] => [
   {
     label: 'Home',
     path: '/',
     icon: <HomeIcon size={'S'} marginEnd={'size-100'} />
+  },
+  // Flow 2 §7.4.e — CSV Import
+  {
+    label: 'CSV Import',
+    path: '/renewal-import',
+    icon: <UploadToCloudIcon size={'S'} marginEnd={'size-100'} />
   }
   // Per-flow button entries appended here (template 08).
 ]
 
-export const navigationRoutes: NavigationRoute[] = [
+// actionCallHeaders (Authorization / IMS org) are forwarded to route components that call
+// backend actions directly, e.g. RenewalCsvUpload → `renewal/csv-import` (§7.4.a).
+export const getNavigationRoutes = (actionCallHeaders: ActionCallHeaders): NavigationRoute[] => [
   {
     paths: ['/'],
     component: (
@@ -31,17 +43,30 @@ export const navigationRoutes: NavigationRoute[] = [
         <Text>Use the navigation to manage renewal imports and price-change package mappings.</Text>
       </View>
     )
+  },
+  // Flow 2 §7.4.e — CSV Import
+  {
+    paths: ['/renewal-import'],
+    component: <RenewalImport actionCallHeaders={actionCallHeaders} />
   }
   // Per-flow route entries appended here (template 08).
 ]
 
 const NavigationContext = createContext({
-  buttons: navigationButtons,
-  routes: navigationRoutes
+  buttons: getNavigationButtons({}),
+  routes: getNavigationRoutes({})
 })
 
-export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <NavigationContext.Provider value={{ buttons: navigationButtons, routes: navigationRoutes }}>
+export const NavigationProvider: React.FC<{
+  children: React.ReactNode
+  actionCallHeaders?: ActionCallHeaders
+}> = ({ children, actionCallHeaders = {} }) => (
+  <NavigationContext.Provider
+    value={{
+      buttons: getNavigationButtons(actionCallHeaders),
+      routes: getNavigationRoutes(actionCallHeaders)
+    }}
+  >
     {children}
   </NavigationContext.Provider>
 )

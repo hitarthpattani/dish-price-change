@@ -8,7 +8,8 @@ import type { MainPageProps } from './types'
 import { attach } from '@adobe/uix-guest'
 import { EXTENSION_ID } from '@web/types/constants'
 import { MainContainer } from '@adobe-commerce/aio-experience-kit'
-import { navigationButtons, navigationRoutes } from '@components/NavigationProvider'
+import { getNavigationButtons, getNavigationRoutes } from '@components/NavigationProvider'
+import type { ActionCallHeaders } from '@components/NavigationProvider/types'
 
 /**
  * Top-level SPA shell (plan §5.6). Wires `buttons` and `routes` from NavigationProvider into
@@ -16,6 +17,7 @@ import { navigationButtons, navigationRoutes } from '@components/NavigationProvi
  */
 export const MainPage: React.FC<MainPageProps> = ({ ims }) => {
   const [isLoading, setIsLoading] = useState(true)
+  const [actionCallHeaders, setActionCallHeaders] = useState<ActionCallHeaders>({})
 
   useEffect(() => {
     const fetchCredentials = async () => {
@@ -24,6 +26,10 @@ export const MainPage: React.FC<MainPageProps> = ({ ims }) => {
         ims.token = guestConnection?.sharedContext?.get('imsToken')
         ims.org = guestConnection?.sharedContext?.get('imsOrgId')
       }
+      setActionCallHeaders({
+        Authorization: `Bearer ${ims.token}`,
+        'x-gw-ims-org-id': ims.org
+      })
       setIsLoading(false)
     }
 
@@ -32,8 +38,8 @@ export const MainPage: React.FC<MainPageProps> = ({ ims }) => {
 
   const renderMainContainer = () => (
     <MainContainer
-      buttons={navigationButtons}
-      routes={navigationRoutes}
+      buttons={getNavigationButtons(actionCallHeaders)}
+      routes={getNavigationRoutes(actionCallHeaders)}
       padding={'size-0'}
       navigationMarginTop={'size-200'}
       navigationMarginBottom={'size-200'}

@@ -10,7 +10,7 @@
   "deploymentTarget": "PaaS",
   "syncCriticalScope": false,
   "createdAt": "2026-07-29T00:00:00Z",
-  "phase": "flow-1-complete",
+  "phase": "flow-2-complete",
   "consoleContext": {
     "org": "ACS Commerce",
     "project": "HPattani Dish Price Change Demo",
@@ -145,7 +145,40 @@
         "eventing.external: plan §6.4.c flat { name,label,runtimeActions } is invalid -> restructured to provider + events[] with a required description per event (mirrors eventing.commerce)."
       ]
     },
-    { "id": 2, "name": "CSV Renewal Ingestion", "status": "pending" },
+    {
+      "id": 2,
+      "name": "CSV Renewal Ingestion",
+      "status": "complete",
+      "completedAt": "2026-07-29T00:00:00Z",
+      "packagesDeclared": [],
+      "packagesReused": ["renewal"],
+      "generatedFiles": [
+        "src/commerce-backend-ui-1/actions/renewal/csv-import/index.ts",
+        "src/commerce-backend-ui-1/test/actions/renewal/csv-import/index.test.ts",
+        "src/commerce-backend-ui-1/web-src/src/components/RenewalImport/components/Upload/index.tsx"
+      ],
+      "modifiedFiles": [
+        "src/commerce-backend-ui-1/actions/renewal/actions.config.yaml (added csv-import)",
+        "src/commerce-backend-ui-1/actions/renewal/apis.config.yaml (added renewalNotification/import)",
+        "src/commerce-backend-ui-1/web-src/src/components/NavigationProvider/index.tsx (added CSV Import button + route)"
+      ],
+      "configMerged": {
+        "businessConfigFields": [],
+        "eventingExternal": [],
+        "eventingCommerce": [],
+        "webhooks": [],
+        "note": "config-merge skipped — Flow 2 declares no businessConfig and (per item 6) no eventing entry."
+      },
+      "validatedAt": "2026-07-29T00:00:00Z",
+      "validated": true,
+      "reinterpretationChoice": "item 5 confirmatory (upload replaces file-drop), item 6 answered",
+      "reinterpretationAnswers": {
+        "item5_firebear_filedrop": "CONFIRMED — the source file-drop + Firebear import + mover/cleanup cron are fully replaced by the admin CSV upload; no filesystem staging in App Builder.",
+        "item6_ajo_error_events": "RESOLVED — omit / log-only. Do NOT declare or publish com.dish.pricechange.import.error; on failure the csv-import action logs and returns errors[] in its response. eventing.external unchanged."
+      },
+      "namingNote": "Action named csv-import (not renewal-csv-import) in package renewal, following the Flow 1 concise-naming convention (GENERATOR-DELTA §13).",
+      "todoCount": 3
+    },
     { "id": 3, "name": "Price Change Execution", "status": "pending" },
     { "id": 4, "name": "Reporting Delivery", "status": "pending" },
     { "id": 5, "name": "Maintenance Sweeps", "status": "pending" }
