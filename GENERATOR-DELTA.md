@@ -172,3 +172,46 @@ before Flow 4 attaches its consumer) will need the same nesting; note the pub/su
 **Template/planner edit:** planner should emit the nested `provider + events[]` shape for
 `eventing.external`; generator `02-config-merge.md` should describe merging external events into the
 correct provider's `events[]` (dedupe on event `name`, union `runtimeActions`).
+
+### 12 — I/O Events provider needs NO custom install step (resolves §11 item 1 mechanism)
+
+The plan §5.1 prescribed a `installation.customInstallationSteps` entry
+(`scripts/register-internal-events-provider.js`) to create the custom I/O Events provider + event
+types, and the generator (`references/foundation/01-app-commerce-config.md`) generated that step +
+script. **It is unnecessary.** `aio-commerce-lib-app` ships a built-in **`externalEventsStep`** that
+automatically creates the I/O Events provider(s) and registers event metadata from the
+`eventing.external` declaration at install time.
+
+**Fix applied (Flow 1, commit 4e34295):** removed `installation.customInstallationSteps` from
+`app.commerce.config.ts` and deleted `scripts/register-internal-events-provider.js`. This resolves
+the **mechanism** half of §11 item 1 (how the provider is created) at the framework level — it is no
+longer a blocking design question. (The publish/consume _business logic_ in
+`lib/utils/events-publisher` and the consumer remain TODO stubs, like all business logic.)
+
+**Template/planner edit:**
+
+- `01-app-commerce-config.md`: do **not** generate a provider-registration `customInstallationStep`
+  or its script for I/O Events providers declared via `eventing.external`; rely on the built-in
+  `externalEventsStep`. Only generate `customInstallationSteps` for genuinely custom install work
+  (data seeding, external resource provisioning) not covered by the framework's built-in steps.
+- `app-builder-migration-planner`: stop prescribing a RabbitMQ→provider registration install step in
+  §5.1; note the provider is auto-created from `eventing.external`.
+
+### 13 — Package / action naming (external vs commerce events; concise names)
+
+The generator used the plan's package names `renewal-ingestion` and `commerce-events`, and action
+`renewal-notification-receiver`. The developer renamed them (commit 4e34295):
+
+- `commerce-events` → **`external-events`** — these are **external** I/O events (custom provider),
+  not Commerce **platform** events (`eventing.commerce`). The name `commerce-events` is misleading
+  and also collided conceptually with the starter kit's sample `commerce-events` package (which
+  pointed at `actions/commerce/events`).
+- `renewal-ingestion` → **`renewal`**, and action `renewal-notification-receiver` → **`notification`**
+  (path `actions/renewal/notification`) — concise package/action names; the package already conveys
+  "renewal", so the action needn't repeat it.
+
+**Template/planner edit:** planner §5.2 / §N.4.b should name the event-consumer package
+`external-events` (reserve `commerce-events` for actual `eventing.commerce` platform-event consumers),
+and prefer concise `<package>/<action>` names that don't repeat the package word. Generator
+`01-package-declaration.md` / `03-action-files.md` should follow whatever the plan declares but may
+apply this naming guidance when the plan is verbose.

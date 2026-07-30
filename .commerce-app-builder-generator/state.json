@@ -37,19 +37,23 @@
       "Basic-Auth on Public Webhook Action",
       "SKU->Date Package Mapping Storage Model"
     ],
-    "developerChoice": "proceed-with-todos"
+    "developerChoice": "proceed-with-todos",
+    "resolvedDuringBuild": {
+      "Internal I/O Events Provider (item 1)": "RESOLVED in Flow 1 (commit 4e34295) — aio-commerce-lib-app built-in externalEventsStep auto-creates the provider from eventing.external; no custom install step. No longer blocking.",
+      "Basic-Auth on Public Webhook (item 7)": "RESOLVED in Flow 1 — Adobe IMS S2S, require-adobe-auth: true.",
+      "note": "Remaining BLOCKING item for later flows: Custom Pricing & Bundle Data Sources (item 2), gating Flow 3 + Flow 5."
+    }
   },
   "foundation": {
     "status": "complete",
     "completedAt": "2026-07-29T00:00:00Z",
     "mergeConflictResolutions": {
       "businessConfig": "none",
-      "eventing": "benign-merge: com.dish.pricechange.reporting.queued is publish-only in Flow 3 (§8.4.c) and gains its consumer in Flow 4 (§9.4.c); merge into one entry using Flow 4 runtimeActions ['commerce-events/reporting-delivery-consumer']",
+      "eventing": "benign-merge: com.dish.pricechange.reporting.queued is publish-only in Flow 3 (§8.4.c) and gains its consumer in Flow 4 (§9.4.c); merge into one provider events[] entry using Flow 4 runtimeActions ['external-events/reporting-delivery-consumer'] (package renamed commerce-events->external-events, §13).",
       "webhooks": "none"
     },
     "generatedFiles": [
       "app.commerce.config.ts",
-      "scripts/register-internal-events-provider.js",
       ".env.example",
       "src/commerce-backend-ui-1/ext.config.yaml",
       "src/commerce-backend-ui-1/lib/database/collection/sling-prerenewal-notifications/index.ts",
@@ -85,7 +89,7 @@
       "Used starter-kit singular dir convention lib/database/collection|repository/<name> (plan §5.3 showed plural) to match the working UserRepository + @lib aliases.",
       "Kept starter-kit registration action shape: { registration: { menuItems, page } } wrapper + HttpMethod.POST (proven working) rather than template's unwrapped GET.",
       "NavigationProvider seeded with a default Home entry (plan said empty skeleton) so the SPA shell renders; per-flow builds append entries.",
-      "customInstallationSteps script lives at project-root scripts/ (resolved relative to app.commerce.config.ts); not covered by lint/tsc which scan src/commerce-backend-ui-1/scripts."
+      "customInstallationSteps script (scripts/register-internal-events-provider.js) was generated at project root, then REMOVED during Flow 1 (commit 4e34295): aio-commerce-lib-app's built-in externalEventsStep auto-creates the I/O Events provider + event metadata from eventing.external, so no custom provider-registration step is needed. installation.customInstallationSteps dropped from app.commerce.config.ts."
     ],
     "developerModifications": {
       "committedAs": "4b83dca — Scaffold Price Change Manager foundation and reorganize shared libs",
@@ -110,15 +114,16 @@
       "name": "Webhook Renewal Ingestion",
       "status": "complete",
       "completedAt": "2026-07-29T00:00:00Z",
-      "packagesDeclared": ["renewal-ingestion", "commerce-events"],
+      "packagesDeclared": ["renewal", "external-events"],
+      "packageRenameNote": "Generator originally emitted packages renewal-ingestion + commerce-events and action renewal-notification-receiver. Developer renamed (commit 4e34295): renewal-ingestion->renewal, commerce-events->external-events (external I/O events, not Commerce platform events), renewal-notification-receiver->notification. See GENERATOR-DELTA.md §13.",
       "generatedFiles": [
-        "src/commerce-backend-ui-1/actions/renewal-ingestion/renewal-notification-receiver/index.ts",
-        "src/commerce-backend-ui-1/actions/renewal-ingestion/actions.config.yaml",
-        "src/commerce-backend-ui-1/actions/renewal-ingestion/apis.config.yaml",
-        "src/commerce-backend-ui-1/actions/commerce-events/pre-renewal-persist-consumer/index.ts",
-        "src/commerce-backend-ui-1/actions/commerce-events/actions.config.yaml",
-        "src/commerce-backend-ui-1/test/actions/renewal-ingestion/renewal-notification-receiver/index.test.ts",
-        "src/commerce-backend-ui-1/test/actions/commerce-events/pre-renewal-persist-consumer/index.test.ts"
+        "src/commerce-backend-ui-1/actions/renewal/notification/index.ts",
+        "src/commerce-backend-ui-1/actions/renewal/actions.config.yaml",
+        "src/commerce-backend-ui-1/actions/renewal/apis.config.yaml",
+        "src/commerce-backend-ui-1/actions/external-events/pre-renewal-persist-consumer/index.ts",
+        "src/commerce-backend-ui-1/actions/external-events/actions.config.yaml",
+        "src/commerce-backend-ui-1/test/actions/renewal/notification/index.test.ts",
+        "src/commerce-backend-ui-1/test/actions/external-events/pre-renewal-persist-consumer/index.test.ts"
       ],
       "configMergedAt": "2026-07-29T00:00:00Z",
       "configMerged": {
@@ -129,10 +134,10 @@
       },
       "validatedAt": "2026-07-29T00:00:00Z",
       "validated": true,
-      "reinterpretationChoice": "mixed (item 1 todos, item 7 answered)",
+      "reinterpretationChoice": "both answered (item 1 resolved via built-in externalEventsStep; item 7 resolved via IMS S2S)",
       "reinterpretationAnswers": {
-        "item7_basic_auth_on_public_webhook": "RESOLVED — use Adobe IMS S2S with annotation require-adobe-auth: true on renewal-notification-receiver; no in-handler Basic auth. Dropped businessConfig fields price_change_auth_username and price_change_auth_password (only price_change_enable retained).",
-        "item1_internal_events_provider": "TODOs — provider creation deferred to §5.1 install step; consumer + subscription generated with TODO placeholders."
+        "item7_basic_auth_on_public_webhook": "RESOLVED — use Adobe IMS S2S with annotation require-adobe-auth: true on the renewal/notification action; no in-handler Basic auth. Dropped businessConfig fields price_change_auth_username and price_change_auth_password (only price_change_enable retained).",
+        "item1_internal_events_provider": "RESOLVED — no custom install step. aio-commerce-lib-app's built-in externalEventsStep auto-creates the I/O Events provider + event metadata from the eventing.external declaration during installation. The custom scripts/register-internal-events-provider.js and installation.customInstallationSteps were removed (commit 4e34295). NOTE: this resolves the provider-creation MECHANISM; the publish/consume business logic (lib/utils/events-publisher, consumer insert) remains a TODO stub like all business logic."
       },
       "todoCount": 4,
       "schemaFixes": [
