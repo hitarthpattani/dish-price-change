@@ -155,12 +155,14 @@
       "generatedFiles": [
         "src/commerce-backend-ui-1/actions/renewal/csv-import/index.ts",
         "src/commerce-backend-ui-1/test/actions/renewal/csv-import/index.test.ts",
-        "src/commerce-backend-ui-1/web-src/src/components/RenewalImport/components/Upload/index.tsx"
+        "src/commerce-backend-ui-1/web-src/src/components/RenewalImport/index.tsx",
+        "src/commerce-backend-ui-1/web-src/src/components/RenewalImport/types.ts"
       ],
       "modifiedFiles": [
         "src/commerce-backend-ui-1/actions/renewal/actions.config.yaml (added csv-import)",
-        "src/commerce-backend-ui-1/actions/renewal/apis.config.yaml (added renewalNotification/import)",
-        "src/commerce-backend-ui-1/web-src/src/components/NavigationProvider/index.tsx (added CSV Import button + route)"
+        "src/commerce-backend-ui-1/web-src/src/components/NavigationProvider/index.tsx (added CSV Import button + route; refactored to actionCallHeaders factories)",
+        "src/commerce-backend-ui-1/web-src/src/components/NavigationProvider/types.ts (added ActionCallHeaders type)",
+        "src/commerce-backend-ui-1/web-src/src/components/MainPage/index.tsx (computes actionCallHeaders and passes to the nav factories)"
       ],
       "configMerged": {
         "businessConfigFields": [],
@@ -177,7 +179,16 @@
         "item6_ajo_error_events": "RESOLVED — omit / log-only. Do NOT declare or publish com.dish.pricechange.import.error; on failure the csv-import action logs and returns errors[] in its response. eventing.external unchanged."
       },
       "namingNote": "Action named csv-import (not renewal-csv-import) in package renewal, following the Flow 1 concise-naming convention (GENERATOR-DELTA §13).",
-      "todoCount": 3
+      "todoCount": 3,
+      "developerModifications": {
+        "committedAs": "2ed17b1 — Scaffold Flow 2 CSV Renewal Ingestion action and UI entry point",
+        "deltaReport": "GENERATOR-DELTA.md §14–§16",
+        "changes": [
+          "actionCallHeaders architecture: NavigationProvider refactored from static navigationButtons/navigationRoutes arrays to factory functions getNavigationButtons(actionCallHeaders)/getNavigationRoutes(actionCallHeaders); added ActionCallHeaders type (Record<string,string>). MainPage now computes { Authorization: Bearer <imsToken>, 'x-gw-ims-org-id': <imsOrg> } and passes it into the factories so screen components can call require-adobe-auth actions authenticated.",
+          "Screen placement flattened: generator emitted RenewalImport/components/Upload/index.tsx (prop-less); developer replaced it with RenewalImport/index.tsx + RenewalImport/types.ts, a single component taking { actionCallHeaders } props.",
+          "apis.config.yaml csv-import REST mapping REMOVED: csv-import is SPA-invoked (default web-action URL + actionCallHeaders), so it needs no Commerce REST path. Only the externally-called notification webhook receiver keeps its apis.config mapping. (Plan §7.4.b over-specified the csv-import apis entry.)"
+        ]
+      }
     },
     { "id": 3, "name": "Price Change Execution", "status": "pending" },
     { "id": 4, "name": "Reporting Delivery", "status": "pending" },

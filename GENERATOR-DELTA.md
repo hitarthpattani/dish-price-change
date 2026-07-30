@@ -215,3 +215,52 @@ The generator used the plan's package names `renewal-ingestion` and `commerce-ev
 and prefer concise `<package>/<action>` names that don't repeat the package word. Generator
 `01-package-declaration.md` / `03-action-files.md` should follow whatever the plan declares but may
 apply this naming guidance when the plan is verbose.
+
+### 14 — Admin UI needs `actionCallHeaders`: NavigationProvider should be factory-based (Flow 2)
+
+Screen components must call backend actions that are `require-adobe-auth: true`, which requires
+forwarding the IMS **Authorization** bearer + **`x-gw-ims-org-id`** headers. The generator's
+Foundation scaffold (`07-admin-ui-scaffold.md`) exported **static** `navigationButtons` /
+`navigationRoutes` arrays and prop-less screen components — which have no way to obtain those headers.
+
+**Fix applied (Flow 2, commit 2ed17b1):** the developer refactored NavigationProvider to **factory
+functions** that take an `actionCallHeaders` argument and inject it into route components:
+
+- `NavigationProvider/types.ts` adds `export type ActionCallHeaders = Record<string, string>`.
+- `getNavigationButtons(actionCallHeaders)` and `getNavigationRoutes(actionCallHeaders)` replace the
+  static arrays; each route element is built as `<Screen actionCallHeaders={actionCallHeaders} />`.
+- `MainPage` computes the headers after the IMS attach
+  (`{ Authorization: 'Bearer '+imsToken, 'x-gw-ims-org-id': imsOrg }`) and passes them into both
+  factories; `NavigationProvider` accepts an optional `actionCallHeaders` prop.
+- Each screen takes a `{ actionCallHeaders }` prop (typed in its own `types.ts`) and forwards the
+  headers when POSTing to its action.
+
+**Template edit — `07-admin-ui-scaffold.md` + `08-admin-ui-screens.md`:** generate the factory-based
+NavigationProvider (`getNavigationButtons`/`getNavigationRoutes` + `ActionCallHeaders`) and MainPage
+header plumbing from the start; generate screen components that accept `{ actionCallHeaders }` and
+append to the factories (not to static arrays).
+
+### 15 — Flatten single-screen features to `{Feature}/index.tsx` + `types.ts` (Flow 2)
+
+The generator emitted the screen at `RenewalImport/components/Upload/index.tsx` (per template 08's
+`{Feature}/components/{Screen}/index.tsx`). For a feature with a **single** screen the developer
+flattened it to `RenewalImport/index.tsx` + `RenewalImport/types.ts` — the feature _is_ the screen,
+so the extra `components/{Screen}` nesting is noise.
+
+**Template edit — `08-admin-ui-screens.md`:** when a feature (§N.4.e) declares only one screen, emit
+`{Feature}/index.tsx` (+ `types.ts` for its props); reserve the `{Feature}/components/{Screen}/`
+nesting for multi-screen features (e.g. Flow 3's Active + Pause mapping grids under
+`PriceChangeConfig/`).
+
+### 16 — `apis.config.yaml` only for externally-exposed REST actions (Flow 2)
+
+The generator added an `apis.config.yaml` REST mapping (`v1/renewalNotification/import`) for
+`csv-import` because plan §7.4.b listed one. The developer **removed** it: `csv-import` is invoked
+from the SPA via its default authenticated web-action URL (with `actionCallHeaders`), so it needs no
+Commerce REST path. Only actions called by **external** clients (here, the `notification` webhook
+receiver posted to by the billing platform) need an `apis.config` mapping.
+
+**Template/planner edit:** `05-apis-config-yaml.md` should generate REST mappings only for actions
+genuinely exposed as Commerce REST endpoints to external callers; admin/SPA-invoked web actions use
+the default web-action URL and should not get an `apis.config` entry. The planner should stop
+prescribing `apis.config` entries for admin-invoked actions (§7.4.b over-specified this).
