@@ -10,7 +10,7 @@
   "deploymentTarget": "PaaS",
   "syncCriticalScope": false,
   "createdAt": "2026-07-29T00:00:00Z",
-  "phase": "flow-3-complete",
+  "phase": "flow-4-complete",
   "consoleContext": {
     "org": "ACS Commerce",
     "project": "HPattani Dish Price Change Demo",
@@ -265,7 +265,38 @@
         ]
       }
     },
-    { "id": 4, "name": "Reporting Delivery", "status": "pending" },
+    {
+      "id": 4,
+      "name": "Reporting Delivery",
+      "status": "complete",
+      "completedAt": "2026-07-30T00:00:00Z",
+      "packagesDeclared": [],
+      "packagesReused": ["external-events"],
+      "generatedFiles": [
+        "src/commerce-backend-ui-1/actions/external-events/reporting-delivery-consumer/index.ts",
+        "src/commerce-backend-ui-1/test/actions/external-events/reporting-delivery-consumer/index.test.ts"
+      ],
+      "modifiedFiles": [
+        "app.commerce.config.ts (businessConfig +7 UMS fields)",
+        "src/commerce-backend-ui-1/actions/external-events/actions.config.yaml (added reporting-delivery-consumer)"
+      ],
+      "configMerged": {
+        "businessConfigFields": [
+          "reporting_endpoint_url","ums_api_request_timeout","ums_reporting_api_batch_size",
+          "ums_debug_mode","ums_retry_enable","ums_retry_count","ums_retry_after"
+        ],
+        "eventingExternal": [],
+        "note": "No eventing change — com.dish.pricechange.reporting.queued was forward-declared with this consumer's runtimeAction in Flow 3 §8.4.c; creating the action completes the subscription."
+      },
+      "validatedAt": "2026-07-30T00:00:00Z",
+      "validated": true,
+      "reinterpretationChoice": "item 1 resolved (built-in externalEventsStep); item 3 = TODO",
+      "reinterpretationAnswers": {
+        "item1_internal_events_provider": "RESOLVED — provider auto-created (built-in externalEventsStep).",
+        "item3_ums_jwt_token": "TODO — UMS JWT acquisition unresolved; the consumer's token step carries a TODO citing item 3."
+      },
+      "todoCount": 1
+    },
     { "id": 5, "name": "Maintenance Sweeps", "status": "pending" }
   ],
   "apiMesh": {

@@ -9,3 +9,14 @@ pre-renewal-persist-consumer:
   limits:
     timeout: 300000
     memory: 512
+reporting-delivery-consumer:
+  function: ../../../../build/actions/external-events/reporting-delivery-consumer/index.js
+  web: 'no'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+  annotations:
+    final: true
+  limits:
+    timeout: 300000
+    memory: 512

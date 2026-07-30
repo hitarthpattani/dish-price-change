@@ -98,7 +98,30 @@ export default defineConfig({
         name: 'bundling_cache_lifetime',
         label: 'Bundling Cache Lifetime (s)',
         default: '86400'
-      }
+      },
+      // Flow 4 §9.4.g — UMS reporting config. select→boolean, numeric→text (GENERATOR-DELTA §10).
+      {
+        type: 'text',
+        name: 'reporting_endpoint_url',
+        label: 'UMS Endpoint URL',
+        default: 'https://ums.q.sling.com/v6/user/event_logs'
+      },
+      {
+        type: 'text',
+        name: 'ums_api_request_timeout',
+        label: 'UMS API Timeout (sec)',
+        default: '30'
+      },
+      {
+        type: 'text',
+        name: 'ums_reporting_api_batch_size',
+        label: 'UMS Reporting Batch Size',
+        default: '20'
+      },
+      { type: 'boolean', name: 'ums_debug_mode', label: 'Enable UMS API Debug', default: true },
+      { type: 'boolean', name: 'ums_retry_enable', label: 'Enable UMS Retry', default: true },
+      { type: 'text', name: 'ums_retry_count', label: 'UMS Retry Count', default: '2' },
+      { type: 'text', name: 'ums_retry_after', label: 'UMS Retry After (ms)', default: '500000' }
     ]
   },
   eventing: {
