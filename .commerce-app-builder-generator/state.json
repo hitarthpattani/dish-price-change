@@ -205,9 +205,9 @@
       "generatedFiles": [
         "src/commerce-backend-ui-1/actions/application-crons/price-change-scheduler/index.ts",
         "src/commerce-backend-ui-1/actions/application-crons/actions.config.yaml",
-        "src/commerce-backend-ui-1/actions/application-crons/crons/triggers.config.yaml",
-        "src/commerce-backend-ui-1/actions/application-crons/crons/rules.config.yaml",
-        "src/commerce-backend-ui-1/actions/price-change/price-change-worker/index.ts",
+        "src/commerce-backend-ui-1/actions/application-crons/triggers.config.yaml",
+        "src/commerce-backend-ui-1/actions/application-crons/rules.config.yaml",
+        "src/commerce-backend-ui-1/actions/application-crons/price-change-worker/index.ts",
         "src/commerce-backend-ui-1/actions/price-change/package-mapping/index.ts",
         "src/commerce-backend-ui-1/actions/price-change/actions.config.yaml",
         "src/commerce-backend-ui-1/lib/database/collection/sling-renewal-package-mapping/index.ts",
@@ -243,7 +243,7 @@
       "reinterpretationAnswers": {
         "item2_custom_pricing_bundle_sources": "TODOs (BLOCKING) — lib/adobe-commerce/catalog + lib/price-change/eligibility + package-pricing carry TODO placeholders citing item 2; data-access approach unresolved.",
         "item3_pbp_ums_tokens": "TODOs — token source unresolved; partner-billing/ums-reporting clients + partner-billing-processor carry TODO notes.",
-        "item4_admin_freq_to_static_cron": "RESOLVED — static alarm trigger '*/2 * * * *' in application-crons/crons/triggers.config.yaml; admin-configurable frequency dropped.",
+        "item4_admin_freq_to_static_cron": "RESOLVED — static alarm trigger '*/2 * * * *' in application-crons/triggers.config.yaml; admin-configurable frequency dropped.",
         "item8_sku_date_mapping_storage": "RESOLVED — ABDB collection + SPA grid. Generated sling_renewal_package_mapping collection+repository, a price-change/package-mapping CRUD action, and the Active/Pause mapping screens."
       },
       "inferredArtifacts": [
@@ -255,7 +255,15 @@
         "reporting.queued declared in Flow 3 with a forward reference to the Flow 4 consumer, collapsing the pub/sub pair into one events[] entry (Flow 4 will just create the action).",
         "FieldType has no DATE — mapping date fields use FieldType.TEXT (ISO string); see GENERATOR-DELTA §17."
       ],
-      "todoCount": 26
+      "todoCount": 26,
+      "developerModifications": {
+        "committedAs": "15a160b — Scaffold Flow 3 Price Change action and UI entry point",
+        "deltaReport": "GENERATOR-DELTA.md §18",
+        "changes": [
+          "Moved price-change-worker from the price-change package into the application-crons package (co-located with the scheduler that fans out to it via Openwhisk). The price-change package now holds only the package-mapping admin CRUD action. Scheduler comment + fan-out target updated to application-crons/price-change-worker; application-crons/actions.config.yaml now declares both scheduler and worker.",
+          "Flattened the cron config path: triggers/rules moved from application-crons/crons/{triggers,rules}.config.yaml to application-crons/{triggers,rules}.config.yaml; ext.config.yaml $include paths updated to match."
+        ]
+      }
     },
     { "id": 4, "name": "Reporting Delivery", "status": "pending" },
     { "id": 5, "name": "Maintenance Sweeps", "status": "pending" }

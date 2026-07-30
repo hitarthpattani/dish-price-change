@@ -292,3 +292,23 @@ bake them in rather than rediscovering per build.
   the grids call — neither is listed in plan §5.3 / §8.4.a. When a data-model reinterpretation
   resolves to "ABDB", the generator should also emit the backing collection/repository **and** the
   read/write action for any grid that edits it.
+
+### 18 — Cron packaging & config-file placement (Flow 3)
+
+Two packaging adjustments the developer made after the Flow 3 scaffold (commit 15a160b):
+
+- **Co-locate a scheduler and the worker it fans out to in one package.** The generator followed the
+  plan and put `price-change-scheduler` in `application-crons` but `price-change-worker` in a separate
+  `price-change` package. The developer moved the worker into `application-crons` (alongside the
+  scheduler), leaving `price-change` for the admin `package-mapping` action only. A scheduler + its
+  Openwhisk-invoked worker are one operational unit — keeping them in the same package simplifies the
+  fan-out reference and deployment. **Planner/template edit:** §5.2 / §8.4.b should place a cron
+  worker in the same package as its scheduler, not a sibling domain package.
+
+- **Cron config files live directly under the package dir, not a `crons/` subfolder.** The generator
+  emitted `application-crons/crons/triggers.config.yaml` + `rules.config.yaml` (matching template
+  06's `actions/application/crons/...`), and `ext.config.yaml` `$include`d that path. The developer
+  flattened to `application-crons/triggers.config.yaml` + `application-crons/rules.config.yaml`.
+  **Template edit — `06-cron-config.md`:** write `triggers.config.yaml` / `rules.config.yaml` directly
+  under the package directory (`actions/{package}/triggers.config.yaml`), and have the package
+  declaration `$include` that flattened path (drop the `crons/` subfolder).
