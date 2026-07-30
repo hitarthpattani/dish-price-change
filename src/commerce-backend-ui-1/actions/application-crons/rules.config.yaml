@@ -1,0 +1,3 @@
+priceChangeSchedulerRule:
+  trigger: priceChangeSchedulerTrigger
+  action: price-change-scheduler

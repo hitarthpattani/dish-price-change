@@ -1,0 +1,4 @@
+priceChangeSchedulerTrigger:
+  feed: /whisk.system/alarms/alarm
+  inputs:
+    cron: '*/2 * * * *' # source default frequency (2M); static per §11 item 4

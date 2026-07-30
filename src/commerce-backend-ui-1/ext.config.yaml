@@ -13,15 +13,25 @@ runtimeManifest:
       license: Apache-2.0
       actions:
         $include: actions/admin-ui-sdk/actions.config.yaml
+    application-crons:
+      license: Apache-2.0
+      actions:
+        $include: actions/application-crons/actions.config.yaml
+      triggers:
+        $include: actions/application-crons/triggers.config.yaml
+      rules:
+        $include: actions/application-crons/rules.config.yaml
     external-events:
       license: Apache-2.0
       actions:
         $include: actions/external-events/actions.config.yaml
+    price-change:
+      license: Apache-2.0
+      actions:
+        $include: actions/price-change/actions.config.yaml
     renewal:
       license: Apache-2.0
       actions:
         $include: actions/renewal/actions.config.yaml
       apis:
         $include: actions/renewal/apis.config.yaml
-    # Per-flow packages merged by later Phase 3 builds:
-    #   application-crons, price-change      — Flow 3 §8.4.b

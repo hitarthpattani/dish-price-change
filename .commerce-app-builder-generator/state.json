@@ -10,7 +10,7 @@
   "deploymentTarget": "PaaS",
   "syncCriticalScope": false,
   "createdAt": "2026-07-29T00:00:00Z",
-  "phase": "flow-2-complete",
+  "phase": "flow-3-complete",
   "consoleContext": {
     "org": "ACS Commerce",
     "project": "HPattani Dish Price Change Demo",
@@ -41,7 +41,13 @@
     "resolvedDuringBuild": {
       "Internal I/O Events Provider (item 1)": "RESOLVED in Flow 1 (commit 4e34295) — aio-commerce-lib-app built-in externalEventsStep auto-creates the provider from eventing.external; no custom install step. No longer blocking.",
       "Basic-Auth on Public Webhook (item 7)": "RESOLVED in Flow 1 — Adobe IMS S2S, require-adobe-auth: true.",
-      "note": "Remaining BLOCKING item for later flows: Custom Pricing & Bundle Data Sources (item 2), gating Flow 3 + Flow 5."
+      "CSV File-Drop / Firebear (item 5)": "CONFIRMED in Flow 2 — admin upload replaces the pipeline.",
+      "AJO Error Events (item 6)": "RESOLVED in Flow 2 — omit / log-only.",
+      "Admin Frequency -> Static Cron (item 4)": "RESOLVED in Flow 3 — static '*/2 * * * *' alarm trigger.",
+      "SKU->Date Mapping Storage (item 8)": "RESOLVED in Flow 3 — ABDB collection + SPA grid.",
+      "Custom Pricing & Bundle Data Sources (item 2)": "STILL OPEN (BLOCKING) — carried as TODOs in Flow 3; also gates Flow 5's bundle-cache rebuild.",
+      "PBP/UMS JWT Tokens (item 3)": "STILL OPEN — carried as TODOs; also affects Flow 4.",
+      "note": "Structure-affecting items all resolved. Remaining open items (2 blocking-data, 3 tokens) affect only TODO stub bodies; still relevant to Flow 4 (item 3) and Flow 5 (item 2)."
     }
   },
   "foundation": {
@@ -190,7 +196,67 @@
         ]
       }
     },
-    { "id": 3, "name": "Price Change Execution", "status": "pending" },
+    {
+      "id": 3,
+      "name": "Price Change Execution",
+      "status": "complete",
+      "completedAt": "2026-07-30T00:00:00Z",
+      "packagesDeclared": ["application-crons", "price-change"],
+      "generatedFiles": [
+        "src/commerce-backend-ui-1/actions/application-crons/price-change-scheduler/index.ts",
+        "src/commerce-backend-ui-1/actions/application-crons/actions.config.yaml",
+        "src/commerce-backend-ui-1/actions/application-crons/crons/triggers.config.yaml",
+        "src/commerce-backend-ui-1/actions/application-crons/crons/rules.config.yaml",
+        "src/commerce-backend-ui-1/actions/price-change/price-change-worker/index.ts",
+        "src/commerce-backend-ui-1/actions/price-change/package-mapping/index.ts",
+        "src/commerce-backend-ui-1/actions/price-change/actions.config.yaml",
+        "src/commerce-backend-ui-1/lib/database/collection/sling-renewal-package-mapping/index.ts",
+        "src/commerce-backend-ui-1/lib/database/collection/sling-renewal-package-mapping/types.ts",
+        "src/commerce-backend-ui-1/lib/database/repository/sling-renewal-package-mapping/index.ts",
+        "src/commerce-backend-ui-1/lib/price-change/eligibility/{index,types}.ts",
+        "src/commerce-backend-ui-1/lib/price-change/change-request-builder/{index,types}.ts",
+        "src/commerce-backend-ui-1/lib/price-change/partner-billing-processor/{index,types}.ts",
+        "src/commerce-backend-ui-1/lib/price-change/retry/index.ts",
+        "src/commerce-backend-ui-1/lib/price-change/package-pricing/{index,types}.ts",
+        "src/commerce-backend-ui-1/web-src/src/components/PriceChangeConfig/components/ActiveMapping/{index.tsx,types.ts}",
+        "src/commerce-backend-ui-1/web-src/src/components/PriceChangeConfig/components/PauseMapping/{index.tsx,types.ts}",
+        "+ co-located stub tests for all 3 actions, both ABDB (collection+repository), and all 5 price-change lib modules"
+      ],
+      "modifiedFiles": [
+        "app.commerce.config.ts (businessConfig +20 fields; eventing.external +reporting.queued on the existing provider)",
+        "src/commerce-backend-ui-1/ext.config.yaml (declared application-crons + price-change packages)",
+        "src/commerce-backend-ui-1/web-src/src/components/NavigationProvider/index.tsx (Active/Pause buttons + routes appended to the factories)"
+      ],
+      "configMerged": {
+        "businessConfigFields": [
+          "recurly_endpoint","recurly_authorization","recurly_timeout","recurly_async_batch_size",
+          "price_change_retry_enable","price_change_retry_count","call_price_change_retry_interval",
+          "price_change_retry_error_code","rtp_days","price_change_cron_enabled","batch_of_record",
+          "fetch_sub_batch","is_recurly_down","partner_jwt_key","partner_jwt_secret","partners_enabled",
+          "pbp_batch_endpoint","pbp_batch_mocked","bundling_cache_enabled","bundling_cache_lifetime"
+        ],
+        "eventingExternal": ["com.dish.pricechange.reporting.queued (forward-refs Flow 4 consumer external-events/reporting-delivery-consumer)"]
+      },
+      "validatedAt": "2026-07-30T00:00:00Z",
+      "validated": true,
+      "reinterpretationChoice": "build-with-todos; item 8 = ABDB collection+grid; item 4 = static cron; items 2 & 3 = TODOs",
+      "reinterpretationAnswers": {
+        "item2_custom_pricing_bundle_sources": "TODOs (BLOCKING) — lib/adobe-commerce/catalog + lib/price-change/eligibility + package-pricing carry TODO placeholders citing item 2; data-access approach unresolved.",
+        "item3_pbp_ums_tokens": "TODOs — token source unresolved; partner-billing/ums-reporting clients + partner-billing-processor carry TODO notes.",
+        "item4_admin_freq_to_static_cron": "RESOLVED — static alarm trigger '*/2 * * * *' in application-crons/crons/triggers.config.yaml; admin-configurable frequency dropped.",
+        "item8_sku_date_mapping_storage": "RESOLVED — ABDB collection + SPA grid. Generated sling_renewal_package_mapping collection+repository, a price-change/package-mapping CRUD action, and the Active/Pause mapping screens."
+      },
+      "inferredArtifacts": [
+        "lib/database/collection|repository/sling-renewal-package-mapping — new ABDB collection for the Active/Pause mappings (item 8 decision; not an explicit plan §5.3 table).",
+        "actions/price-change/package-mapping — SPA-invoked CRUD action for the mappings (item 8; not enumerated in plan §8.4.a). No apis.config (SPA-invoked, per §16)."
+      ],
+      "conventionNotes": [
+        "Cron/Openwhisk-invoked actions (price-change-scheduler, price-change-worker) use an EMPTY HTTP-method list so alarm/Openwhisk invocation isn't method-checked (RuntimeAction.execute skips method validation when httpMethods is empty).",
+        "reporting.queued declared in Flow 3 with a forward reference to the Flow 4 consumer, collapsing the pub/sub pair into one events[] entry (Flow 4 will just create the action).",
+        "FieldType has no DATE — mapping date fields use FieldType.TEXT (ISO string); see GENERATOR-DELTA §17."
+      ],
+      "todoCount": 26
+    },
     { "id": 4, "name": "Reporting Delivery", "status": "pending" },
     { "id": 5, "name": "Maintenance Sweeps", "status": "pending" }
   ],

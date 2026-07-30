@@ -21,6 +21,83 @@ export default defineConfig({
         label: 'Enable Price Change Feature',
         default: true,
         description: 'Master toggle for accepting renewal webhooks.'
+      },
+      // Flow 3 §8.4.g — price-change engine config. select→boolean and numeric→text per the
+      // aio-commerce-lib-app schema (no 'select'/'number' businessConfig types; see GENERATOR-DELTA §10).
+      // change_sub_recurly_request.*
+      {
+        type: 'text',
+        name: 'recurly_endpoint',
+        label: 'Recurly Endpoint URL',
+        default: 'https://v3.recurly.com/subscriptions'
+      },
+      { type: 'password', name: 'recurly_authorization', label: 'Recurly Basic Auth' },
+      { type: 'text', name: 'recurly_timeout', label: 'Recurly Timeout (sec)', default: '10' },
+      {
+        type: 'text',
+        name: 'recurly_async_batch_size',
+        label: 'Recurly Change Async Batch Size',
+        default: '25'
+      },
+      {
+        type: 'boolean',
+        name: 'price_change_retry_enable',
+        label: 'Enable Recurly Change Retry',
+        default: true
+      },
+      {
+        type: 'text',
+        name: 'price_change_retry_count',
+        label: 'Recurly Retry Count',
+        default: '2'
+      },
+      {
+        type: 'text',
+        name: 'call_price_change_retry_interval',
+        label: 'Retry Interval (min)',
+        default: '30'
+      },
+      {
+        type: 'text',
+        name: 'price_change_retry_error_code',
+        label: 'Retry Error Codes',
+        default: '500,502,503,504,429,28'
+      },
+      { type: 'text', name: 'rtp_days', label: 'RTP Days', default: '27' },
+      // price_change_cron_setting.*
+      {
+        type: 'boolean',
+        name: 'price_change_cron_enabled',
+        label: 'Enable Price Change Cron',
+        default: false
+      },
+      { type: 'text', name: 'batch_of_record', label: 'DB Batch Size', default: '2' },
+      {
+        type: 'text',
+        name: 'fetch_sub_batch',
+        label: 'Fetch Subscription Batch Size',
+        default: '25'
+      },
+      // disable_recurly_api.*
+      { type: 'boolean', name: 'is_recurly_down', label: 'Is Recurly Down?', default: false },
+      // partner_billing.*
+      { type: 'password', name: 'partner_jwt_key', label: 'Partner JWT Key' },
+      { type: 'password', name: 'partner_jwt_secret', label: 'Partner JWT Secret' },
+      { type: 'boolean', name: 'partners_enabled', label: 'Enable for Partners', default: false },
+      { type: 'text', name: 'pbp_batch_endpoint', label: 'PBP Batch Endpoint URL' },
+      { type: 'boolean', name: 'pbp_batch_mocked', label: 'Mock PBP', default: false },
+      // bundling_cache.*
+      {
+        type: 'boolean',
+        name: 'bundling_cache_enabled',
+        label: 'Enable Bundling Cache',
+        default: false
+      },
+      {
+        type: 'text',
+        name: 'bundling_cache_lifetime',
+        label: 'Bundling Cache Lifetime (s)',
+        default: '86400'
       }
     ]
   },
@@ -45,6 +122,15 @@ export default defineConfig({
             label: 'Pre-Renewal Notification Received',
             description: 'Inbound renewal/resume notification, consumed to persist the queue row.',
             runtimeActions: ['external-events/pre-renewal-persist-consumer']
+          },
+          {
+            // Flow 3 §8.4.c — published by price-change-worker; consumed by Flow 4's
+            // reporting-delivery-consumer (forward reference — that action is created in Flow 4,
+            // collapsing the pub/sub pair into this single events[] entry, per the §2b merge note).
+            name: 'com.dish.pricechange.reporting.queued',
+            label: 'Reporting Queued',
+            description: 'Price-change outcome rows queued for delivery to the UMS reporting API.',
+            runtimeActions: ['external-events/reporting-delivery-consumer']
           }
         ]
       }

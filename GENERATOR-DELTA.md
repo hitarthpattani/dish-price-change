@@ -264,3 +264,31 @@ receiver posted to by the billing platform) need an `apis.config` mapping.
 genuinely exposed as Commerce REST endpoints to external callers; admin/SPA-invoked web actions use
 the default web-action URL and should not get an `apis.config` entry. The planner should stop
 prescribing `apis.config` entries for admin-invoked actions (§7.4.b over-specified this).
+
+### 17 — Flow 3 build learnings (schema/toolkit realities the plan/templates should encode)
+
+Discovered while scaffolding Flow 3 (Price Change Execution). Recorded here so the generator/planner
+bake them in rather than rediscovering per build.
+
+- **Cron / Openwhisk-invoked actions must use an empty HTTP-method list.** `RuntimeAction.execute`
+  skips method validation only when `httpMethods` is `[]` (it returns 405 for a missing `__ow_method`
+  otherwise). Alarm- and Openwhisk-invoked actions (`price-change-scheduler`, `price-change-worker`)
+  therefore pass `[]` for methods. `03-action-files.md` should specify `[]` for non-web (`web:'no'`)
+  cron/invoked RuntimeActions, and their tests should assert the success stub (no 405 case).
+
+- **`FieldType` has no `DATE`.** The experience-kit `FieldType` enum is
+  `text|email|password|number|url|tel|search|select|multiselect|toggle|label`. Plan §8.4.e's `DATE`
+  fields (active_from_date / from_date) were generated as `FieldType.TEXT` (ISO string) with a TODO
+  to swap in a react-spectrum `DatePicker`. `08-admin-ui-screens.md` should map plan `DATE` →
+  `FieldType.TEXT` + DatePicker TODO (there is no native date field type).
+
+- **`DataForm` prop shape.** Template 08 shows `<DataForm groups={...} editItem={...} />`, but the
+  real `DataFormProps` requires `components={{ groups: FormBuilderGroup[] }}` and `editItem`, and each
+  `FormBuilderField` requires `{ label, code, db_field, type, required, disabled }`. Update template 08.
+
+- **Item-8 (ABDB mapping storage) implied two artifacts the plan doesn't enumerate.** Choosing "ABDB
+  collection + grid" for the SKU→date mappings requires (a) a new ABDB collection+repository
+  (`sling_renewal_package_mapping`) and (b) a SPA-invoked CRUD action (`price-change/package-mapping`)
+  the grids call — neither is listed in plan §5.3 / §8.4.a. When a data-model reinterpretation
+  resolves to "ABDB", the generator should also emit the backing collection/repository **and** the
+  read/write action for any grid that edits it.

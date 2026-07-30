@@ -6,8 +6,12 @@ import React, { createContext, useContext } from 'react'
 import { View, Heading, Text } from '@adobe/react-spectrum'
 import HomeIcon from '@spectrum-icons/workflow/Home'
 import UploadToCloudIcon from '@spectrum-icons/workflow/UploadToCloud'
+import CalendarIcon from '@spectrum-icons/workflow/Calendar'
+import PauseCircleIcon from '@spectrum-icons/workflow/PauseCircle'
 import { ActionCallHeaders, NavigationButton, NavigationRoute } from './types'
 import { RenewalImport } from '@components/RenewalImport'
+import { ActiveMapping } from '@components/PriceChangeConfig/components/ActiveMapping'
+import { PauseMapping } from '@components/PriceChangeConfig/components/PauseMapping'
 
 // Navigation registry (plan §5.6). Foundation seeds a default Home entry so the SPA shell renders;
 // per-flow builds (§N.4.e / template 08) append their button + route entries to the arrays below:
@@ -28,6 +32,17 @@ export const getNavigationButtons = (_actionCallHeaders: ActionCallHeaders): Nav
     label: 'CSV Import',
     path: '/renewal-import',
     icon: <UploadToCloudIcon size={'S'} marginEnd={'size-100'} />
+  },
+  // Flow 3 §8.4.e — Active / Pause package mappings
+  {
+    label: 'Active Renewal',
+    path: '/active-mapping',
+    icon: <CalendarIcon size={'S'} marginEnd={'size-100'} />
+  },
+  {
+    label: 'Pause Renewal',
+    path: '/pause-mapping',
+    icon: <PauseCircleIcon size={'S'} marginEnd={'size-100'} />
   }
   // Per-flow button entries appended here (template 08).
 ]
@@ -48,6 +63,15 @@ export const getNavigationRoutes = (actionCallHeaders: ActionCallHeaders): Navig
   {
     paths: ['/renewal-import'],
     component: <RenewalImport actionCallHeaders={actionCallHeaders} />
+  },
+  // Flow 3 §8.4.e — Active / Pause package mappings
+  {
+    paths: ['/active-mapping'],
+    component: <ActiveMapping actionCallHeaders={actionCallHeaders} />
+  },
+  {
+    paths: ['/pause-mapping'],
+    component: <PauseMapping actionCallHeaders={actionCallHeaders} />
   }
   // Per-flow route entries appended here (template 08).
 ]

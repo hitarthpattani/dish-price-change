@@ -1,0 +1,24 @@
+price-change-scheduler:
+  function: ../../../../build/actions/application-crons/price-change-scheduler/index.js
+  web: 'no'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+    COMMERCE_BASE_URL: $COMMERCE_BASE_URL
+  annotations:
+    final: true
+  limits:
+    timeout: 300000
+    memory: 512
+price-change-worker:
+  function: ../../../../build/actions/application-crons/price-change-worker/index.js
+  web: 'no'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+    COMMERCE_BASE_URL: $COMMERCE_BASE_URL
+  annotations:
+    final: true
+  limits:
+    timeout: 300000
+    memory: 1024
