@@ -121,7 +121,22 @@ export default defineConfig({
       { type: 'boolean', name: 'ums_debug_mode', label: 'Enable UMS API Debug', default: true },
       { type: 'boolean', name: 'ums_retry_enable', label: 'Enable UMS Retry', default: true },
       { type: 'text', name: 'ums_retry_count', label: 'UMS Retry Count', default: '2' },
-      { type: 'text', name: 'ums_retry_after', label: 'UMS Retry After (ms)', default: '500000' }
+      { type: 'text', name: 'ums_retry_after', label: 'UMS Retry After (ms)', default: '500000' },
+      // Flow 5 §10.4.g — maintenance sweeps. select→boolean, numeric→text (GENERATOR-DELTA §10).
+      // (bundling_cache_enabled / bundling_cache_lifetime are declared once in Flow 3 §8.4.g and reused.)
+      {
+        type: 'boolean',
+        name: 'remove_renewal_notification_cron_enabled',
+        label: 'Enable Remove Renewal Notification Cron',
+        default: true
+      },
+      {
+        type: 'text',
+        name: 'remove_renewal_day_interval',
+        label: 'Interval In Days',
+        default: '3'
+      },
+      { type: 'text', name: 'remove_record_batch', label: 'Batch Size', default: '10000' }
     ]
   },
   eventing: {

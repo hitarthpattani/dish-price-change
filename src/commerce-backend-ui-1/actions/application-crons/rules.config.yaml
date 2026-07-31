@@ -1,3 +1,9 @@
 priceChangeSchedulerRule:
   trigger: priceChangeSchedulerTrigger
   action: price-change-scheduler
+removeRenewalNotificationsRule:
+  trigger: removeRenewalNotificationsTrigger
+  action: remove-renewal-notifications
+rebuildBundleGuidCacheRule:
+  trigger: rebuildBundleGuidCacheTrigger
+  action: rebuild-bundle-guid-cache

@@ -2,3 +2,11 @@ priceChangeSchedulerTrigger:
   feed: /whisk.system/alarms/alarm
   inputs:
     cron: '*/2 * * * *' # source default frequency (2M); static per §11 item 4
+removeRenewalNotificationsTrigger:
+  feed: /whisk.system/alarms/alarm
+  inputs:
+    cron: '0 3 * * *' # daily; static per §11 item 4
+rebuildBundleGuidCacheTrigger:
+  feed: /whisk.system/alarms/alarm
+  inputs:
+    cron: '0 2 * * *' # daily; matches source bundling-cache default lifetime

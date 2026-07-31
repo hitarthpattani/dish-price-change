@@ -10,7 +10,7 @@
   "deploymentTarget": "PaaS",
   "syncCriticalScope": false,
   "createdAt": "2026-07-29T00:00:00Z",
-  "phase": "flow-4-complete",
+  "phase": "flow-5-complete",
   "consoleContext": {
     "org": "ACS Commerce",
     "project": "HPattani Dish Price Change Demo",
@@ -297,7 +297,46 @@
       },
       "todoCount": 1
     },
-    { "id": 5, "name": "Maintenance Sweeps", "status": "pending" }
+    {
+      "id": 5,
+      "name": "Maintenance Sweeps",
+      "status": "complete",
+      "completedAt": "2026-07-31T00:00:00Z",
+      "packagesDeclared": [],
+      "packagesReused": ["application-crons"],
+      "generatedFiles": [
+        "src/commerce-backend-ui-1/actions/application-crons/remove-renewal-notifications/index.ts",
+        "src/commerce-backend-ui-1/actions/application-crons/rebuild-bundle-guid-cache/index.ts",
+        "src/commerce-backend-ui-1/test/actions/application-crons/remove-renewal-notifications/index.test.ts",
+        "src/commerce-backend-ui-1/test/actions/application-crons/rebuild-bundle-guid-cache/index.test.ts"
+      ],
+      "modifiedFiles": [
+        "app.commerce.config.ts (businessConfig +3 remove_renewal_notification_cron_setting.* fields)",
+        "src/commerce-backend-ui-1/actions/application-crons/actions.config.yaml (added 2 cron actions)",
+        "src/commerce-backend-ui-1/actions/application-crons/triggers.config.yaml (+2 daily triggers)",
+        "src/commerce-backend-ui-1/actions/application-crons/rules.config.yaml (+2 rules)"
+      ],
+      "configMerged": {
+        "businessConfigFields": [
+          "remove_renewal_notification_cron_enabled",
+          "remove_renewal_day_interval",
+          "remove_record_batch"
+        ],
+        "note": "bundling_cache_enabled / bundling_cache_lifetime reused from Flow 3 §8.4.g (not redeclared). No eventing."
+      },
+      "validatedAt": "2026-07-31T00:00:00Z",
+      "validated": true,
+      "reinterpretationChoice": "item 4 static cron; item 5 confirmed (drop cleanup cron); item 2 = TODO",
+      "reinterpretationAnswers": {
+        "item2_custom_pricing_bundle_sources": "TODO (BLOCKING) — rebuild-bundle-guid-cache carries a TODO citing item 2 (bundle GUID association source unresolved).",
+        "item4_admin_freq_to_static_cron": "RESOLVED — static daily alarms ('0 3 * * *' purge, '0 2 * * *' bundle rebuild).",
+        "item5_firebear_filedrop": "CONFIRMED — the source CSV/log file-cleanup cron (csv_remove_renewal_notifications_temp) is dropped (no filesystem in App Builder)."
+      },
+      "droppedArtifacts": [
+        "CSV/log file cleanup cron (source csv_remove_renewal_notifications_temp) — not applicable in App Builder (no filesystem staging; §10.4.a / §11 item 5)."
+      ],
+      "todoCount": 2
+    }
   ],
   "apiMesh": {
     "status": "deferred",

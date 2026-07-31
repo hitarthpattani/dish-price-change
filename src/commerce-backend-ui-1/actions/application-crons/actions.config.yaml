@@ -22,3 +22,26 @@ price-change-worker:
   limits:
     timeout: 300000
     memory: 1024
+remove-renewal-notifications:
+  function: ../../../../build/actions/application-crons/remove-renewal-notifications/index.js
+  web: 'no'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+  annotations:
+    final: true
+  limits:
+    timeout: 300000
+    memory: 512
+rebuild-bundle-guid-cache:
+  function: ../../../../build/actions/application-crons/rebuild-bundle-guid-cache/index.js
+  web: 'no'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+    COMMERCE_BASE_URL: $COMMERCE_BASE_URL
+  annotations:
+    final: true
+  limits:
+    timeout: 300000
+    memory: 512
