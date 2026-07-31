@@ -312,3 +312,54 @@ Two packaging adjustments the developer made after the Flow 3 scaffold (commit 1
   **Template edit — `06-cron-config.md`:** write `triggers.config.yaml` / `rules.config.yaml` directly
   under the package directory (`actions/{package}/triggers.config.yaml`), and have the package
   declaration `$include` that flattened path (drop the `crons/` subfolder).
+
+### 19 — Process: consolidate generator artifacts under `.generator/` and capture a per-flow delta
+
+_This is a workflow/tooling recommendation for the skill itself, not a code change to this project._
+Flow 5 (commit 96421f1) had **no developer adjustments** — the committed code matches the generated
+output exactly — so there is no code delta to record for it.
+
+**Directory consolidation.** The generator currently splits its bookkeeping across two locations: the
+state file at `.commerce-app-builder-generator/state.json` and this human-readable delta at the
+**project root** (`GENERATOR-DELTA.md`). Put both under a single hidden `.generator/` directory:
+
+- `.generator/state.json` — machine state (today's `.commerce-app-builder-generator/state.json`).
+- `.generator/delta.md` — the generator-vs-developer delta (today's root `GENERATOR-DELTA.md`).
+
+Keeping them together makes the generator's footprint one tidy, ignorable folder and colocates the
+state with the delta that explains how the code drifted from it. (Note for whoever implements this:
+`SKILL.md` hardcodes the `.commerce-app-builder-generator/state.json` path in several places — update
+all of them in lockstep, and keep a migration/back-compat read so existing projects still resume.)
+
+**Per-flow delta capture (make it a skill rule).** At the **start of each flow build** (Phase 3
+§3a/§3b), before generating anything, the skill should:
+
+1. Diff the current on-disk code against what it last generated (using `state.json`'s recorded
+   `generatedFiles` + git history) to detect **developer adjustments** made since the previous flow.
+2. Record those adjustments in `.generator/delta.md` — what the generator emitted, what the developer
+   changed it to, and the recommended template/planner fix — grouped per finding (as this file does).
+3. Reconcile `state.json` to the current reality (paths, names, resolved reinterpretation items) so
+   later flows build on accurate facts.
+
+This per-flow "diff current vs generated → record delta → reconcile state" loop is exactly what we
+did manually across Flows 1–5; formalizing it means every future run accumulates a structured,
+reviewable delta. **That accumulated `.generator/delta.md` is the primary input for improving the
+skill's ruleset** — each recurring developer correction becomes a candidate template/planner change,
+so the generator converges on the developer's real conventions over time.
+
+### 20 — Phase 4 `TODO.md` should live in `.generator/`, not the project root
+
+Phase 4 (§4c) writes the aggregated TODO inventory to **`TODO.md` at the project root**. Like the
+state file and the delta (§19), this is generator bookkeeping and clutters the project root — it
+should be written to **`.generator/TODO.md`** instead, so all three generator artifacts live together
+in one hidden folder:
+
+- `.generator/state.json` — machine state
+- `.generator/delta.md` — generator-vs-developer delta (skill-improvement input)
+- `.generator/TODO.md` — aggregated TODO inventory (developer worklist)
+
+**Template edit — `SKILL.md` §4c:** write the TODO inventory to `.generator/TODO.md` (update the §4c
+and §4h path references, and the `TODO.md` mentions in §3d.3's note about placeholder tests). Keeping
+it out of the project root also means it no longer needs to satisfy the root-level `*.md`
+`format:check` glob. (In this run it was generated at the root per the current template; a future
+skill build should relocate it.)

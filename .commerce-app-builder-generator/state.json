@@ -10,7 +10,21 @@
   "deploymentTarget": "PaaS",
   "syncCriticalScope": false,
   "createdAt": "2026-07-29T00:00:00Z",
-  "phase": "flow-5-complete",
+  "phase": "phase-4-complete",
+  "completion": {
+    "completedAt": "2026-07-31T00:00:00Z",
+    "flows": { "complete": 5, "skipped": 0, "deferred": 0 },
+    "packages": ["admin-ui-sdk", "application-crons", "external-events", "price-change", "renewal"],
+    "businessConfigFieldCount": 31,
+    "eventing": { "externalEvents": 2, "provider": "Price Change Internal Events", "commerce": 0, "webhooks": 0 },
+    "sourceFiles": 27,
+    "todoCount": 84,
+    "validation": "dev:validate exits 0 — 28 suites / 64 tests, 100% coverage",
+    "openReinterpretationItems": ["item 2 — Custom Pricing & Bundle Data Sources (BLOCKING)", "item 3 — PBP/UMS JWT token acquisition"],
+    "apiMesh": "none (no GraphQL in source)",
+    "todoInventory": "TODO.md (project root)",
+    "stateCleanupChoice": "keep"
+  },
   "consoleContext": {
     "org": "ACS Commerce",
     "project": "HPattani Dish Price Change Demo",
@@ -335,7 +349,12 @@
       "droppedArtifacts": [
         "CSV/log file cleanup cron (source csv_remove_renewal_notifications_temp) — not applicable in App Builder (no filesystem staging; §10.4.a / §11 item 5)."
       ],
-      "todoCount": 2
+      "todoCount": 2,
+      "developerModifications": {
+        "committedAs": "96421f1 — Scaffold Flow 5 Maintenance Sweeps cron actions",
+        "changes": "NONE — committed code matches the generated output exactly (verified: action names, application-crons package, flattened triggers/rules, business config). No reconciliation needed.",
+        "processNote": "See GENERATOR-DELTA.md §19 — recommendation to consolidate generator artifacts under .generator/ (state.json + delta.md) and to run a per-flow 'diff current vs generated -> record delta -> reconcile state' loop as a skill rule."
+      }
     }
   ],
   "apiMesh": {
