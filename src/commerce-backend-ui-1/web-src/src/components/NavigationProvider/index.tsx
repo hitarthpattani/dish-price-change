@@ -10,14 +10,14 @@ import PauseCircleIcon from '@spectrum-icons/workflow/PauseCircle'
 import { ActionCallHeaders, NavigationButton, NavigationRoute } from './types'
 import { ManageRenewalNotifications } from '@components/ManageRenewalNotifications'
 import { Dashboard } from '@components/Dashboard'
-import { ActiveMapping } from '@components/PriceChangeConfig/components/ActiveMapping'
-import { PauseMapping } from '@components/PriceChangeConfig/components/PauseMapping'
+import { ManageRenewalPackages } from '@components/ManageRenewalPackages'
+import { RenewalPackageType } from '@components/ManageRenewalPackages/types'
 
 // Navigation registry (plan §5.6). Foundation seeds a default Home entry so the SPA shell renders;
 // per-flow builds (§N.4.e / template 08) append their button + route entries to the arrays below:
-//   Flow 2 §7.4.e — CSV Upload      → '/renewal-import'
-//   Flow 3 §8.4.e — Active Mapping  → '/active-mapping'
-//   Flow 3 §8.4.e — Pause Mapping   → '/pause-mapping'
+//   Flow 2 §7.4.e — CSV Upload      → '/manage-renewal-notifications'
+//   Flow 3 §8.4.e — Active Mapping  → '/active-renewal-packages'
+//   Flow 3 §8.4.e — Pause Mapping   → '/pause-renewal-packages'
 
 /** Build the navigation buttons available in the application shell. */
 export const getNavigationButtons = (_actionCallHeaders: ActionCallHeaders): NavigationButton[] => [
@@ -34,13 +34,13 @@ export const getNavigationButtons = (_actionCallHeaders: ActionCallHeaders): Nav
   },
   // Flow 3 §8.4.e — Active / Pause package mappings
   {
-    label: 'Active Renewal',
-    path: '/active-mapping',
+    label: 'Active Renewal Packages',
+    path: '/active-renewal-packages',
     icon: <CalendarIcon size={'S'} marginEnd={'size-100'} />
   },
   {
-    label: 'Pause Renewal',
-    path: '/pause-mapping',
+    label: 'Pause Renewal Packages',
+    path: '/pause-renewal-packages',
     icon: <PauseCircleIcon size={'S'} marginEnd={'size-100'} />
   }
   // Per-flow button entries appended here (template 08).
@@ -59,12 +59,22 @@ export const getNavigationRoutes = (actionCallHeaders: ActionCallHeaders): Navig
   },
   // Flow 3 §8.4.e — Active / Pause package mappings
   {
-    paths: ['/active-mapping'],
-    component: <ActiveMapping actionCallHeaders={actionCallHeaders} />
+    paths: ['/active-renewal-packages'],
+    component: (
+      <ManageRenewalPackages
+        actionCallHeaders={actionCallHeaders}
+        packageType={RenewalPackageType.ACTIVE}
+      />
+    )
   },
   {
-    paths: ['/pause-mapping'],
-    component: <PauseMapping actionCallHeaders={actionCallHeaders} />
+    paths: ['/pause-renewal-packages'],
+    component: (
+      <ManageRenewalPackages
+        actionCallHeaders={actionCallHeaders}
+        packageType={RenewalPackageType.PAUSE}
+      />
+    )
   }
   // Per-flow route entries appended here (template 08).
 ]

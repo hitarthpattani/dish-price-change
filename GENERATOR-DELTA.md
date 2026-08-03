@@ -250,9 +250,9 @@ flattened and renamed it to `ManageRenewalNotifications/index.tsx` +
 so the extra `components/{Screen}` nesting is noise.
 
 **Template edit — `08-admin-ui-screens.md`:** when a feature (§N.4.e) declares only one screen, emit
-`{Feature}/index.tsx` (+ `types.ts` for its props); reserve the `{Feature}/components/{Screen}/`
-nesting for multi-screen features (e.g. Flow 3's Active + Pause mapping grids under
-`PriceChangeConfig/`).
+`{Feature}/index.tsx` (+ `types.ts` for its props). When two screens share the same behavior, emit
+one parameterized component, as Flow 3 now does with `ManageRenewalPackages` and its active/pause
+package-type enum.
 
 ### 16 — `apis.config.yaml` only for externally-exposed REST actions (Flow 2)
 

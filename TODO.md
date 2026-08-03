@@ -90,9 +90,9 @@ item; resolve that item before implementing.
 
 **Admin UI (mapping grids)**
 
-- [ ] `web-src/src/components/PriceChangeConfig/components/ActiveMapping/index.tsx` (2) — grid load +
-      form submit via package-mapping (§8.4.e). Date field is TEXT (no DATE FieldType).
-- [ ] `web-src/src/components/PriceChangeConfig/components/PauseMapping/index.tsx` (2) — same, pause.
+- [ ] `web-src/src/components/ManageRenewalPackages/index.tsx` (4) — grid load and form submit via
+      package-mapping for active and pause package types (§8.4.e). Date field is TEXT (no DATE
+      FieldType).
 
 ## Flow 4 — Reporting Delivery
 
