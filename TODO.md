@@ -60,7 +60,8 @@ item; resolve that item before implementing.
 
 - [ ] `actions/renewal/csv-import/index.ts` (2) — parse CSV, insertMany; on failure log + errors[]
       (item 6 = log-only, no AJO event) (§7.4.a).
-- [ ] `web-src/src/components/RenewalImport/index.tsx` (1) — POST the CSV to `renewal/csv-import`
+- [ ] `web-src/src/components/ManageRenewalNotifications/index.tsx` (1) — POST the CSV to
+      `renewal/csv-import`
       with actionCallHeaders; render the result summary (§7.4.e).
 
 ## Flow 3 — Price Change Execution

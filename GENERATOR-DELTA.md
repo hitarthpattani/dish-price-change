@@ -245,7 +245,8 @@ append to the factories (not to static arrays).
 
 The generator emitted the screen at `RenewalImport/components/Upload/index.tsx` (per template 08's
 `{Feature}/components/{Screen}/index.tsx`). For a feature with a **single** screen the developer
-flattened it to `RenewalImport/index.tsx` + `RenewalImport/types.ts` — the feature _is_ the screen,
+flattened and renamed it to `ManageRenewalNotifications/index.tsx` +
+`ManageRenewalNotifications/types.ts` — the feature _is_ the screen,
 so the extra `components/{Screen}` nesting is noise.
 
 **Template edit — `08-admin-ui-screens.md`:** when a feature (§N.4.e) declares only one screen, emit
