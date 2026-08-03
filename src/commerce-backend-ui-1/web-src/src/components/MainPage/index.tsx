@@ -8,8 +8,11 @@ import type { MainPageProps } from './types'
 import { attach } from '@adobe/uix-guest'
 import { EXTENSION_ID } from '@web/types/constants'
 import { MainContainer } from '@adobe-commerce/aio-experience-kit'
-import { getNavigationButtons, getNavigationRoutes } from '@components/NavigationProvider'
-import type { ActionCallHeaders } from '@components/NavigationProvider/types'
+import {
+  getNavigationButtons,
+  getNavigationRoutes
+} from '@components/MainPage/utils/NavigationProvider'
+import type { ActionCallHeaders } from '@components/MainPage/utils/NavigationProvider/types'
 
 /**
  * Top-level SPA shell (plan §5.6). Wires `buttons` and `routes` from NavigationProvider into

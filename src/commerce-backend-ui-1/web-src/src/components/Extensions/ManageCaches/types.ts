@@ -2,7 +2,7 @@
  * <license header>
  */
 
-import type { ActionCallHeaders } from '@components/NavigationProvider/types'
+import type { ActionCallHeaders } from '@components/MainPage/utils/NavigationProvider/types'
 
 /** Properties required by the cache-management screen. */
 export interface ManageCachesProps {

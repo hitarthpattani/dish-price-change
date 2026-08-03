@@ -2,7 +2,7 @@
  * <license header>
  */
 
-import type { ActionCallHeaders } from '@components/NavigationProvider/types'
+import type { ActionCallHeaders } from '@components/MainPage/utils/NavigationProvider/types'
 
 /** Renewal package groups supported by the management screen. */
 export enum RenewalPackageType {
