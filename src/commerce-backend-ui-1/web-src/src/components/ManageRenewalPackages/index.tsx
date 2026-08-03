@@ -38,7 +38,9 @@ export const ManageRenewalPackages: React.FC<ManageRenewalPackagesProps> = ({
         {/* Header Section */}
         <Flex direction="column" gap="size-100" marginTop="size-100">
           <Heading level={3} marginTop={0} marginBottom="size-50">
-            {packageType === RenewalPackageType.ACTIVE ? 'Active Renewal Packages' : 'Pause Renewal Packages' }
+            {packageType === RenewalPackageType.ACTIVE
+              ? 'Active Renewal Packages'
+              : 'Pause Renewal Packages'}
           </Heading>
           <Content>
             <Text>
