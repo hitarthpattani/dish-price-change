@@ -7,9 +7,11 @@ import HomeIcon from '@spectrum-icons/workflow/Home'
 import UploadToCloudIcon from '@spectrum-icons/workflow/UploadToCloud'
 import CalendarIcon from '@spectrum-icons/workflow/Calendar'
 import PauseCircleIcon from '@spectrum-icons/workflow/PauseCircle'
+import SettingsIcon from '@spectrum-icons/workflow/Settings'
 import { ActionCallHeaders, NavigationButton, NavigationRoute } from './types'
 import { ManageRenewalNotifications } from '@components/ManageRenewalNotifications'
 import { Dashboard } from '@components/Dashboard'
+import { Configurations } from '@components/Configurations'
 import { ManageRenewalPackages } from '@components/ManageRenewalPackages'
 import { RenewalPackageType } from '@components/ManageRenewalPackages/types'
 
@@ -42,8 +44,13 @@ export const getNavigationButtons = (_actionCallHeaders: ActionCallHeaders): Nav
     label: 'Pause Renewal Packages',
     path: '/pause-renewal-packages',
     icon: <PauseCircleIcon size={'S'} marginEnd={'size-100'} />
-  }
+  },
   // Per-flow button entries appended here (template 08).
+  {
+    label: 'Configurations',
+    path: '/configurations',
+    icon: <SettingsIcon size={'S'} marginEnd={'size-100'} />
+  }
 ]
 
 /** Build application routes and forward authentication headers to their components. */
@@ -75,8 +82,12 @@ export const getNavigationRoutes = (actionCallHeaders: ActionCallHeaders): Navig
         packageType={RenewalPackageType.PAUSE}
       />
     )
-  }
+  },
   // Per-flow route entries appended here (template 08).
+  {
+    paths: ['/configurations'],
+    component: <Configurations actionCallHeaders={actionCallHeaders} />
+  }
 ]
 
 const NavigationContext = createContext({
