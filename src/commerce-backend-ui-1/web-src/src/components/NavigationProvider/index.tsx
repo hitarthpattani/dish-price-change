@@ -7,11 +7,13 @@ import HomeIcon from '@spectrum-icons/workflow/Home'
 import UploadToCloudIcon from '@spectrum-icons/workflow/UploadToCloud'
 import CalendarIcon from '@spectrum-icons/workflow/Calendar'
 import PauseCircleIcon from '@spectrum-icons/workflow/PauseCircle'
+import DataRefreshIcon from '@spectrum-icons/workflow/DataRefresh'
 import SettingsIcon from '@spectrum-icons/workflow/Settings'
 import { ActionCallHeaders, NavigationButton, NavigationRoute } from './types'
 import { ManageRenewalNotifications } from '@components/ManageRenewalNotifications'
 import { Dashboard } from '@components/Dashboard'
 import { Configurations } from '@components/Configurations'
+import { ManageCaches } from '@components/ManageCaches'
 import { ManageRenewalPackages } from '@components/ManageRenewalPackages'
 import { RenewalPackageType } from '@components/ManageRenewalPackages/types'
 
@@ -46,6 +48,11 @@ export const getNavigationButtons = (_actionCallHeaders: ActionCallHeaders): Nav
     icon: <PauseCircleIcon size={'S'} marginEnd={'size-100'} />
   },
   // Per-flow button entries appended here (template 08).
+  {
+    label: 'Manage Caches',
+    path: '/manage-caches',
+    icon: <DataRefreshIcon size={'S'} marginEnd={'size-100'} />
+  },
   {
     label: 'Configurations',
     path: '/configurations',
@@ -84,6 +91,10 @@ export const getNavigationRoutes = (actionCallHeaders: ActionCallHeaders): Navig
     )
   },
   // Per-flow route entries appended here (template 08).
+  {
+    paths: ['/manage-caches'],
+    component: <ManageCaches actionCallHeaders={actionCallHeaders} />
+  },
   {
     paths: ['/configurations'],
     component: <Configurations actionCallHeaders={actionCallHeaders} />
