@@ -20,12 +20,13 @@ export const main = RuntimeAction.execute('price-change-scheduler', [], [], [], 
   // Business logic (from plan §8.4.a):
   //   1. Gate: proceed only if businessConfig `price_change_cron_enabled` AND NOT `is_recurly_down`.
   //   2. repo.findDueForPriceChange(batch_of_record, retryCutoff).
-  //   3. repo.markConsumed(...) for new / retry-exhausted records.
-  //   4. Chunk the due UUIDs by businessConfig `fetch_sub_batch`.
-  //   5. Fan out each chunk to `application-crons/price-change-worker` via Openwhisk.execute(..., { blocking: false }).
+  //   3. Chunk the due UUIDs by businessConfig `fetch_sub_batch`.
+  //   4. Fan out each chunk to `application-crons/price-change-worker` via Openwhisk.execute(..., { blocking: false }).
+  //      The worker marks terminal outcomes COMPLETE or schedules RETRY; the scheduler does not
+  //      mutate lifecycle state before dispatch.
   //
   // Foundation artifacts to call:
-  //   - lib/database/repository/sling-prerenewal-notifications (findDueForPriceChange, markConsumed)
+  //   - lib/database/repository/prerenewal-notifications (findDueForPriceChange)
   //   - lib/utils/logger
   // Toolkit primitives: Openwhisk (from '@adobe-commerce/aio-toolkit') for the fan-out.
 

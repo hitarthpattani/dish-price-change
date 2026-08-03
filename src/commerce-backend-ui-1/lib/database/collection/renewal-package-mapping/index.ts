@@ -2,7 +2,7 @@
  * <license header>
  */
 
-/* This file exposes the SlingRenewalPackageMappingCollection class */
+/* This file exposes the RenewalPackageMappingCollection class */
 
 import { AbdbCollection, AbdbColumnType } from '@adobe-commerce/aio-toolkit'
 
@@ -13,9 +13,9 @@ import { AbdbCollection, AbdbColumnType } from '@adobe-commerce/aio-toolkit'
  * dynamic date-keyed admin grids; here they live in a dedicated ABDB collection, written by the
  * Active/Pause mapping screens and read by the eligibility engine (lib/price-change/eligibility).
  */
-export class SlingRenewalPackageMappingCollection extends AbdbCollection {
+export class RenewalPackageMappingCollection extends AbdbCollection {
   constructor() {
-    super('sling_renewal_package_mapping', collection => {
+    super('renewal_package_mapping', collection => {
       collection
         .addColumn('mapping_type', AbdbColumnType.STRING, 'Mapping Type (active|pause)', true)
         .addColumn('effective_date', AbdbColumnType.STRING, 'Effective Date (ISO-8601)', true)

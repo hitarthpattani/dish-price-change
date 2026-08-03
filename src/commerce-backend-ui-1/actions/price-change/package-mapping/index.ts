@@ -21,12 +21,12 @@ export const main = RuntimeAction.execute(
   async () => {
     // TODO: Implement per migration plan §8.4.e / §11 item 8
     //   - GET  → list mappings (optionally by ?type=active|pause) via
-    //            SlingRenewalPackageMappingRepository.listByType(...).
-    //   - POST → upsert a mapping (SlingRenewalPackageMappingRepository.saveMapping(...));
+    //            RenewalPackageMappingRepository.listByType(...).
+    //   - POST → upsert a mapping (RenewalPackageMappingRepository.saveMapping(...));
     //            support delete via a body flag or a DELETE method as needed.
     //
     // Foundation artifacts to call:
-    //   - lib/database/repository/sling-renewal-package-mapping
+    //   - lib/database/repository/renewal-package-mapping
     //   - lib/utils/logger
 
     return RuntimeActionResponse.success({

@@ -6,10 +6,10 @@
 
 /**
  * Classify per-subscription results (error codes, retry count) and record the outcome by updating
- * the notification rows' status/timestamp (plan §8.4.d).
+ * the notification rows' status, retry_count, and timestamp (plan §8.4.d).
  *
- * Dependencies: lib/database/repository/sling-prerenewal-notifications
- * (incrementRetry / markNotToRetry / markConsumed) + businessConfig
+ * Dependencies: lib/database/repository/prerenewal-notifications
+ * (scheduleRetry / markComplete) + businessConfig
  * (`price_change_retry_enable`, `price_change_retry_count`, `price_change_retry_error_code`).
  */
 export async function classifyAndRecord(_results: Record<string, unknown>[]): Promise<void> {

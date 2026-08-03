@@ -16,7 +16,7 @@ updated to match these conventions on future runs.
 | --- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | 1   | lib layout                  | `lib/recurly`, `lib/partner-billing`, `lib/ums-reporting`, `lib/logger`, `lib/errors`, `lib/events/publisher.ts`, `lib/reporting/builder.ts`, `lib/utils/params.ts` | `lib/integrations/<svc>/index.ts` for third-party clients; `lib/utils/<area>/index.ts` for cross-cutting libs; `lib/adobe-commerce/catalog/index.ts` kept         | `05-external-clients.md`, `06-shared-libs.md`      |
 | 2   | Module file shape           | Bare single files (`publisher.ts`, `builder.ts`, `params.ts`)                                                                                                       | Folder-per-module `<module>/index.ts` everywhere                                                                                                                  | `05`, `06`                                         |
-| 3   | Dir naming                  | snake_case dir `sling_prerenewal_notifications`                                                                                                                     | kebab-case dir `sling-prerenewal-notifications` (collection **name string** kept snake_case; classes PascalCase)                                                  | `04-abdb-collections-repos.md`                     |
+| 3   | Dir naming                  | snake_case dir `sling_prerenewal_notifications`                                                                                                                     | kebab-case dir `prerenewal-notifications` (collection name `prerenewal_notifications`; classes PascalCase)                                                        | `04-abdb-collections-repos.md`                     |
 | 4   | Types split                 | Domain interfaces inlined (`ReportRow` in builder; nav interfaces in `NavigationProvider/index.tsx`)                                                                | Split exported domain interfaces into sibling `types.ts` (`report-builder/types.ts`, `NavigationProvider/types.ts`). Small local interface (`Logger`) left inline | `06`, `07-admin-ui-scaffold.md`                    |
 | 5   | Constants                   | `APP_SLUG`/`APP_NAME` as local consts in the registration action                                                                                                    | Moved to `actions/constants.ts` beside `EXTENSION_ID`; imported                                                                                                   | `07`                                               |
 | 6   | Sample cleanup              | Removed only `example` + `commerce/events` action packages                                                                                                          | Also removed the `user` sample ABDB collection/repository **and** their tests                                                                                     | `SKILL.md` §2c                                     |
@@ -51,10 +51,11 @@ Every module is a folder with `index.ts` (no bare `<name>.ts`), matching the sta
 
 ### 3 — kebab-case directory names
 
-Directory: `lib/database/collection/sling-prerenewal-notifications/` (kebab). The ABDB collection
-**name string** passed to `super(...)` stays the source table name `sling_prerenewal_notifications`
-(snake_case); the class stays `SlingPrerenewalNotificationsCollection` (PascalCase); the record
-interface stays `SlingPrerenewalNotificationRecord`.
+Directory: `lib/database/collection/prerenewal-notifications/` (kebab). The ABDB collection
+**name string** passed to `super(...)` is `prerenewal_notifications` (snake_case); the source
+Commerce table remains `sling_prerenewal_notifications`. The class is
+`PrerenewalNotificationsCollection` (PascalCase); the record interface is
+`PrerenewalNotificationRecord`.
 
 **Template edit — `04-abdb-collections-repos.md`:** state the three casings explicitly — directory
 kebab-case, collection name string = source table (verbatim), TS identifiers PascalCase — and update
@@ -107,7 +108,7 @@ describe('publishInternalEvent', () => {
 ```
 
 Additional assertions used: pure exports (`FLOW_CODE`, `StepCode` members), and for the repository
-`expect(repository.getName()).toBe('sling_prerenewal_notifications')`. Sync throwers use
+`expect(repository.getName()).toBe('prerenewal_notifications')`. Sync throwers use
 `expect(() => fn()).toThrow(...)`; async use `await expect(fn()).rejects.toThrow(...)`.
 
 **SKILL/template edit:** add a step (and a `references/foundation/08-stub-tests.md` +
@@ -288,7 +289,7 @@ bake them in rather than rediscovering per build.
 
 - **Item-8 (ABDB mapping storage) implied two artifacts the plan doesn't enumerate.** Choosing "ABDB
   collection + grid" for the SKU→date mappings requires (a) a new ABDB collection+repository
-  (`sling_renewal_package_mapping`) and (b) a SPA-invoked CRUD action (`price-change/package-mapping`)
+  (`renewal_package_mapping`) and (b) a SPA-invoked CRUD action (`price-change/package-mapping`)
   the grids call — neither is listed in plan §5.3 / §8.4.a. When a data-model reinterpretation
   resolves to "ABDB", the generator should also emit the backing collection/repository **and** the
   read/write action for any grid that edits it.

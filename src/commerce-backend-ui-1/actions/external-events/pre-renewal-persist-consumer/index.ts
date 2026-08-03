@@ -21,11 +21,11 @@ export const main = EventConsumerAction.execute(
     // Payload fields available: the renewal notification published by renewal/notification.
     //
     // Business logic (from plan §6.4.a):
-    //   - Insert a row (source=webhook, status=0) via the repository.
+    //   - Insert a row (source=WEBHOOK, status=NEW, retry_count=0) via the repository.
     //   - On failure: build a `message_consumption` report row and publish `reporting.queued`.
     //
     // Foundation artifacts to call:
-    //   - lib/database/repository/sling-prerenewal-notifications → insertNotification(...)
+    //   - lib/database/repository/prerenewal-notifications → insertNotification(...)
     //   - lib/utils/report-builder → buildReportRow(...) on the error path
     //   - lib/utils/events-publisher → publishInternalEvent('com.dish.pricechange.reporting.queued', ...)
     //   - lib/utils/logger
