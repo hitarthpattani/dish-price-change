@@ -10,12 +10,12 @@ import PauseCircleIcon from '@spectrum-icons/workflow/PauseCircle'
 import DataRefreshIcon from '@spectrum-icons/workflow/DataRefresh'
 import SettingsIcon from '@spectrum-icons/workflow/Settings'
 import { ActionCallHeaders, NavigationButton, NavigationRoute } from './types'
-import { ManageRenewalNotifications } from '@components/ManageRenewalNotifications'
-import { Dashboard } from '@components/Dashboard'
-import { Configurations } from '@components/Configurations'
-import { ManageCaches } from '@components/ManageCaches'
-import { ManageRenewalPackages } from '@components/ManageRenewalPackages'
-import { RenewalPackageType } from '@components/ManageRenewalPackages/types'
+import { ManageRenewalNotifications } from '@components/Extensions/ManageRenewalNotifications'
+import { Dashboard } from '@components/Extensions/Dashboard'
+import { Configurations } from '@components/Extensions/Configurations'
+import { ManageCaches } from '@components/Extensions/ManageCaches'
+import { ManageRenewalPackages } from '@components/Extensions/ManageRenewalPackages'
+import { RenewalPackageType } from '@components/Extensions/ManageRenewalPackages/types'
 
 // Navigation registry (plan §5.6). Foundation seeds a default Home entry so the SPA shell renders;
 // per-flow builds (§N.4.e / template 08) append their button + route entries to the arrays below:

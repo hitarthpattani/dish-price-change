@@ -245,14 +245,14 @@ append to the factories (not to static arrays).
 
 The generator emitted the screen at `RenewalImport/components/Upload/index.tsx` (per template 08's
 `{Feature}/components/{Screen}/index.tsx`). For a feature with a **single** screen the developer
-flattened and renamed it to `ManageRenewalNotifications/index.tsx` +
-`ManageRenewalNotifications/types.ts` — the feature _is_ the screen,
+flattened and renamed it to `Extensions/ManageRenewalNotifications/index.tsx` +
+`Extensions/ManageRenewalNotifications/types.ts` — the feature _is_ the screen,
 so the extra `components/{Screen}` nesting is noise.
 
 **Template edit — `08-admin-ui-screens.md`:** when a feature (§N.4.e) declares only one screen, emit
 `{Feature}/index.tsx` (+ `types.ts` for its props). When two screens share the same behavior, emit
-one parameterized component, as Flow 3 now does with `ManageRenewalPackages` and its active/pause
-package-type enum.
+one parameterized component, as Flow 3 now does with `Extensions/ManageRenewalPackages` and its
+active/pause package-type enum.
 
 ### 16 — `apis.config.yaml` only for externally-exposed REST actions (Flow 2)
 
