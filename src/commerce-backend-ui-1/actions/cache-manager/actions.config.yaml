@@ -1,0 +1,24 @@
+delete:
+  function: ../../../../build/actions/cache-manager/delete/index.js
+  web: 'yes'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+  annotations:
+    require-adobe-auth: true
+    final: true
+  limits:
+    timeout: 55000
+    memory: 512
+list:
+  function: ../../../../build/actions/cache-manager/list/index.js
+  web: 'yes'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+  annotations:
+    require-adobe-auth: true
+    final: true
+  limits:
+    timeout: 55000
+    memory: 512
