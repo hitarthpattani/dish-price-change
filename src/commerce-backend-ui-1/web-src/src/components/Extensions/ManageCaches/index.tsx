@@ -7,7 +7,7 @@ import { View } from '@adobe/react-spectrum'
 import { CacheGrid } from './components/CacheGrid'
 import { type ManageCachesProps } from './types'
 
-/** Screen for managing Price Change Manager caches. */
+/** Screen for managing Subscription Price Manager caches. */
 export const ManageCaches: React.FC<ManageCachesProps> = ({ actionCallHeaders }) => {
   return (
     <View

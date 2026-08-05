@@ -2,8 +2,8 @@ import { defineConfig } from '@adobe/aio-commerce-lib-app/config'
 
 export default defineConfig({
   metadata: {
-    id: 'dish-price-change',
-    displayName: 'Price Change Manager',
+    id: 'subscription-price-manager',
+    displayName: 'Subscription Price Manager',
     version: '1.0.0',
     description:
       'Automates subscription package price changes at renewal — webhook/CSV ingestion, ' +

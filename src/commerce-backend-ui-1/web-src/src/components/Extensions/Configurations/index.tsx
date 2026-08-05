@@ -6,7 +6,7 @@ import React from 'react'
 import { Content, Flex, Heading, View, Well, Text } from '@adobe/react-spectrum'
 import type { ConfigurationsProps } from './types'
 
-/** Screen for managing Price Change Manager configuration settings. */
+/** Screen for managing Subscription Price Manager configuration settings. */
 export const Configurations: React.FC<ConfigurationsProps> = ({ actionCallHeaders }) => {
   void actionCallHeaders
 
@@ -24,7 +24,7 @@ export const Configurations: React.FC<ConfigurationsProps> = ({ actionCallHeader
             {'Configurations'}
           </Heading>
           <Content>
-            <Text>{'Manage the configuration settings for the Price Change Manager.'}</Text>
+            <Text>{'Manage the configuration settings for the Subscription Price Manager.'}</Text>
           </Content>
         </Flex>
       </Well>

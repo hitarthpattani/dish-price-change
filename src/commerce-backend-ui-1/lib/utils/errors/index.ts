@@ -4,7 +4,7 @@
 
 /* Custom error types — plan §5.5. Consumed by all flows. */
 
-/** Base error for all Price Change Manager failures. */
+/** Base error for all Subscription Price Manager failures. */
 export class PriceChangeError extends Error {
   constructor(message: string) {
     super(message)

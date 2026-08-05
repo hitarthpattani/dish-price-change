@@ -6,7 +6,7 @@ import React from 'react'
 import { View, Heading, Flex, Text, Content, Well } from '@adobe/react-spectrum'
 import type { DashboardProps } from './types'
 
-/** Landing screen for the Price Change Manager application. */
+/** Landing screen for the Subscription Price Manager application. */
 export const Dashboard: React.FC<DashboardProps> = ({ actionCallHeaders }) => {
   void actionCallHeaders
 

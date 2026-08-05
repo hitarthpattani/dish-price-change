@@ -113,5 +113,5 @@ item; resolve that item before implementing.
 
 - Replace the `it`-stub tests with real behavior tests as you implement each file (they currently
   assert the placeholder success / TODO throw only, to hold the 100% coverage gate).
-- Foundation `EXTENSION_ID` = `DishPriceChange` (in `actions/constants.ts` +
+- Foundation `EXTENSION_ID` = `SubscriptionPriceManager` (in `actions/constants.ts` +
   `web-src/src/types/constants.ts`) — keep them identical.

@@ -36,14 +36,14 @@ describe('registration action', () => {
 
       expect(registration.menuItems).toEqual([
         {
-          id: `${EXTENSION_ID}::price-change`,
-          title: 'Price Change Manager',
+          id: `${EXTENSION_ID}::subscription-price-manager`,
+          title: 'Subscription Price Manager',
           isSection: true
         },
         {
-          id: `${EXTENSION_ID}::price-change::app`,
+          id: `${EXTENSION_ID}::subscription-price-manager::app`,
           title: 'Application',
-          parent: `${EXTENSION_ID}::price-change`,
+          parent: `${EXTENSION_ID}::subscription-price-manager`,
           sandbox: 'allow-downloads allow-modals allow-popups'
         }
       ])
@@ -55,7 +55,7 @@ describe('registration action', () => {
       const registration = body.registration as Record<string, unknown>
 
       expect(registration.page).toEqual({
-        title: 'Price Change Manager'
+        title: 'Subscription Price Manager'
       })
     })
 
