@@ -25,6 +25,10 @@ runtimeManifest:
       license: Apache-2.0
       actions:
         $include: actions/cache-manager/actions.config.yaml
+    configuration:
+      license: Apache-2.0
+      actions:
+        $include: actions/configuration/actions.config.yaml
     external-events:
       license: Apache-2.0
       actions:
