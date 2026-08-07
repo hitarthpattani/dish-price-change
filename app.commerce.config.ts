@@ -11,17 +11,6 @@ export default defineConfig({
   },
   businessConfig: {
     schema: [
-      // Flow 1 §6.4.g — more fields added by Flow 3 §8.4.g, Flow 4 §9.4.g, Flow 5 §10.4.g.
-      // (Basic-auth username/password fields dropped — auth resolved to Adobe IMS S2S, §11 item 7.)
-      // NOTE: plan §6.4.g used type:'select' with Yes/No options, but the aio-commerce-lib-app
-      // schema has no 'select' type — Yes/No toggles map to type:'boolean' (default true/false).
-      {
-        type: 'boolean',
-        name: 'price_change_enable',
-        label: 'Enable Price Change Feature',
-        default: true,
-        description: 'Master toggle for accepting renewal webhooks.'
-      },
       // Flow 3 §8.4.g — price-change engine config. select→boolean and numeric→text per the
       // aio-commerce-lib-app schema (no 'select'/'number' businessConfig types; see GENERATOR-DELTA §10).
       // change_sub_recurly_request.*

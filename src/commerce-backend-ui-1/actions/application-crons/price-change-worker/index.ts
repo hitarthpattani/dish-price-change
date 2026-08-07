@@ -20,7 +20,7 @@ export const main = RuntimeAction.execute('price-change-worker', [], [], [], asy
   //      - automatic  → lib/integrations/recurly.changeSubscription(...).
   //      - partner    → lib/price-change/partner-billing-processor.processBatchResponse(...) → recurly.changeSubscription(...).
   //   4. lib/price-change/retry.classifyAndRecord(...) for retryable/failed outcomes.
-  //   5. lib/utils/report-builder.buildReportRow(...) then publish `com.dish.pricechange.reporting.queued`
+  //   5. lib/utils/report-builder.ReportBuilder.build(...) then publish `com.dish.pricechange.reporting.queued`
   //      via lib/utils/events-publisher (consumed by Flow 4).
   //
   // Reinterpretation: §11 item 2 (BLOCKING — pricing/bundle data via lib/adobe-commerce/catalog),

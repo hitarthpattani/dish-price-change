@@ -26,8 +26,8 @@ export const main = EventConsumerAction.execute(
     //
     // Foundation artifacts to call:
     //   - lib/database/repository/prerenewal-notifications → insertNotification(...)
-    //   - lib/utils/report-builder → buildReportRow(...) on the error path
-    //   - lib/utils/events-publisher → publishInternalEvent('com.dish.pricechange.reporting.queued', ...)
+    //   - lib/utils/report-builder → ReportBuilder.build(...) on the error path
+    //   - lib/utils/events-publisher → new EventsPublisher(params).publish('com.dish.pricechange.reporting.queued', ...)
     //   - lib/utils/logger
     //
     // Reinterpretation §11 item 1 (BLOCKING — Internal I/O Events Provider): confirm the provider/
