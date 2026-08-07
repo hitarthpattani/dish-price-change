@@ -18,7 +18,24 @@ describe('configuration/load action', () => {
   let mockAll: jest.Mock
   let mockBuild: jest.Mock
 
-  const scopeTree = [{ scope: 'default', scopeId: 0, label: 'Default Config' }]
+  const scopeTree = [
+    { scope: 'default', scopeId: 0, label: 'Default Config' },
+    {
+      scope: 'website',
+      scopeId: 5,
+      code: 'arcteryx',
+      label: 'Arc`teryx',
+      children: [
+        {
+          code: 'arcteryx',
+          label: 'Arc`teryx',
+          children: [
+            { scope: 'store', scopeId: 23, code: 'arcteryx_en', label: 'Arc`teryx English' }
+          ]
+        }
+      ]
+    }
+  ]
 
   const validParams: ActionParams = {
     __ow_headers: {
@@ -53,7 +70,7 @@ describe('configuration/load action', () => {
     expect(body.scope).toBe('default')
     expect(body.scopeId).toBe(0)
     expect(body.scopeTree).toEqual(scopeTree)
-    expect(ConfigurationRepository).toHaveBeenCalledWith('a-valid-token')
+    expect(ConfigurationRepository).toHaveBeenCalledWith('a-valid-token', scopeTree)
     expect(mockAll).toHaveBeenCalledWith('default', 0)
     expect(StoreScopeTree).toHaveBeenCalledWith(validParams)
   })
@@ -70,6 +87,20 @@ describe('configuration/load action', () => {
     expect(body.scope).toBe('website')
     expect(body.scopeId).toBe(2)
     expect(mockAll).toHaveBeenCalledWith('website', 2)
+  })
+
+  it('loads configuration for a store scope, inheriting through its website', async () => {
+    const result = (await loadAction({
+      ...validParams,
+      scope: 'store',
+      scope_id: 23
+    })) as SuccessResponse
+
+    expect(result.statusCode).toBe(200)
+    const body = result.body as Record<string, unknown>
+    expect(body.scope).toBe('store')
+    expect(body.scopeId).toBe(23)
+    expect(mockAll).toHaveBeenCalledWith('store', 23)
   })
 
   it('returns 500 when access token generation fails', async () => {

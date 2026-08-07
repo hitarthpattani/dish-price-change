@@ -6,19 +6,25 @@
  * Save Action for Configuration
  *
  * This runtime action saves or updates configuration data in the
- * `configuration` ABDB collection for a given scope.
+ * `configuration` ABDB collection for a given scope. The save itself always
+ * targets that exact scope (writes never inherit), but the configuration
+ * returned in the response is merged down the `default` -> `website` ->
+ * `store` inheritance chain, matching what `configuration/load` would show
+ * for the same scope.
  *
  * @module actions/configuration/save
  *
  * Endpoints:
  * - POST: Save/update the configuration data, optionally scoped by
  *   `scope` (e.g. `default`, `website`, `store`) and `scope_id`, returning
- *   the effective `scope`/`scopeId` alongside the saved configuration.
+ *   the effective `scope`/`scopeId` alongside the saved configuration
+ *   (merged across the scope inheritance chain).
  */
 import { RuntimeAction, HttpMethod, RuntimeActionResponse } from '@adobe-commerce/aio-toolkit'
 import { ConfigurationRepository } from '@lib/database/repository/configuration'
 import { GenerateAccessToken } from '@lib/utils/generate-access-token'
 import { ConfigurationScope } from '@lib/utils/configuration-scope'
+import { StoreScopeTree } from '@lib/utils/store-scope-tree'
 
 /** Scope applied when the caller does not specify one, mirroring `ConfigurationRepository`'s default. */
 const DEFAULT_SCOPE = 'default'
@@ -46,8 +52,12 @@ export const main = RuntimeAction.execute(
         Object.entries(rawConfiguration).filter(([, value]) => value !== null && value !== '')
       )
 
-      const accessToken = await GenerateAccessToken.execute(params)
-      const configurationRepository = new ConfigurationRepository(accessToken)
+      const [accessToken, scopeTree] = await Promise.all([
+        GenerateAccessToken.execute(params),
+        new StoreScopeTree(params).build()
+      ])
+
+      const configurationRepository = new ConfigurationRepository(accessToken, scopeTree)
 
       await configurationRepository.set(filteredConfiguration, effectiveScope, effectiveScopeId)
 

@@ -6,15 +6,37 @@ import type { SuccessResponse, ErrorResponse } from '@adobe-commerce/aio-toolkit
 import { main as saveAction } from '@actions/configuration/save'
 import { ConfigurationRepository } from '@lib/database/repository/configuration'
 import { GenerateAccessToken } from '@lib/utils/generate-access-token'
+import { StoreScopeTree } from '@lib/utils/store-scope-tree'
 
 type ActionParams = Record<string, unknown>
 
 jest.mock('@lib/database/repository/configuration')
 jest.mock('@lib/utils/generate-access-token')
+jest.mock('@lib/utils/store-scope-tree')
 
 describe('configuration/save action', () => {
   let mockSet: jest.Mock
   let mockAll: jest.Mock
+  let mockBuild: jest.Mock
+
+  const scopeTree = [
+    { scope: 'default', scopeId: 0, label: 'Default Config' },
+    {
+      scope: 'website',
+      scopeId: 5,
+      code: 'arcteryx',
+      label: 'Arc`teryx',
+      children: [
+        {
+          code: 'arcteryx',
+          label: 'Arc`teryx',
+          children: [
+            { scope: 'store', scopeId: 23, code: 'arcteryx_en', label: 'Arc`teryx English' }
+          ]
+        }
+      ]
+    }
+  ]
 
   const validParams: ActionParams = {
     __ow_headers: {
@@ -36,6 +58,11 @@ describe('configuration/save action', () => {
       all: mockAll
     }))
     ;(GenerateAccessToken.execute as jest.Mock).mockResolvedValue('a-valid-token')
+
+    mockBuild = jest.fn().mockResolvedValue(scopeTree)
+    ;(StoreScopeTree as unknown as jest.Mock).mockImplementation(() => ({
+      build: mockBuild
+    }))
   })
 
   it('saves the filtered configuration for the default scope', async () => {
@@ -48,7 +75,7 @@ describe('configuration/save action', () => {
     })
     expect(body.scope).toBe('default')
     expect(body.scopeId).toBe(0)
-    expect(ConfigurationRepository).toHaveBeenCalledWith('a-valid-token')
+    expect(ConfigurationRepository).toHaveBeenCalledWith('a-valid-token', scopeTree)
     expect(mockSet).toHaveBeenCalledWith({ 'api-key': 'value' }, 'default', 0)
     expect(mockAll).toHaveBeenCalledWith('default', 0)
   })
@@ -68,6 +95,21 @@ describe('configuration/save action', () => {
     expect(mockAll).toHaveBeenCalledWith('website', 2)
   })
 
+  it('saves configuration for a store scope, returning it merged through its website', async () => {
+    const result = (await saveAction({
+      ...validParams,
+      scope: 'store',
+      scope_id: 23
+    })) as SuccessResponse
+
+    expect(result.statusCode).toBe(200)
+    const body = result.body as Record<string, unknown>
+    expect(body.scope).toBe('store')
+    expect(body.scopeId).toBe(23)
+    expect(mockSet).toHaveBeenCalledWith({ 'api-key': 'value' }, 'store', 23)
+    expect(mockAll).toHaveBeenCalledWith('store', 23)
+  })
+
   it('requires the configuration parameter', async () => {
     const { configuration: _configuration, ...paramsWithoutConfiguration } = validParams
 
@@ -83,6 +125,15 @@ describe('configuration/save action', () => {
 
     expect(result.error.statusCode).toBe(500)
     expect(result.error.body.error).toContain('token failure')
+  })
+
+  it('returns 500 when the scope tree build fails', async () => {
+    mockBuild.mockRejectedValue(new Error('scope tree failure'))
+
+    const result = (await saveAction(validParams)) as ErrorResponse
+
+    expect(result.error.statusCode).toBe(500)
+    expect(result.error.body.error).toContain('scope tree failure')
   })
 
   it('returns 500 when the repository save fails', async () => {

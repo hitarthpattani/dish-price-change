@@ -6,16 +6,19 @@
  * Load Action for Configuration
  *
  * This runtime action fetches configuration data from the `configuration`
- * ABDB collection for a given scope, alongside the Adobe Commerce scope tree
+ * ABDB collection for a given scope, inheriting down the `default` ->
+ * `website` -> `store` chain (a store view falls back to its website, which
+ * falls back to `default`, per key), alongside the Adobe Commerce scope tree
  * (Default Config -> Website -> Store Group -> Store View) used to populate
  * the scope picker.
  *
  * @module actions/configuration/load
  *
  * Endpoints:
- * - GET|POST: Fetch the current configuration data, optionally scoped by
- *   `scope` (e.g. `default`, `website`, `store`) and `scope_id`, together
- *   with the effective `scope`/`scopeId` and the full Commerce scope tree.
+ * - GET|POST: Fetch the current configuration data (merged across the scope
+ *   inheritance chain), optionally scoped by `scope` (e.g. `default`,
+ *   `website`, `store`) and `scope_id`, together with the effective
+ *   `scope`/`scopeId` and the full Commerce scope tree.
  */
 import { RuntimeAction, HttpMethod, RuntimeActionResponse } from '@adobe-commerce/aio-toolkit'
 import { ConfigurationRepository } from '@lib/database/repository/configuration'
@@ -44,15 +47,13 @@ export const main = RuntimeAction.execute(
       const effectiveScope = scope ?? DEFAULT_SCOPE
       const effectiveScopeId = scopeId ?? DEFAULT_SCOPE_ID
 
-      const accessToken = await GenerateAccessToken.execute(params)
-      const configurationRepository = new ConfigurationRepository(accessToken)
-
-      const storeScopeTree = new StoreScopeTree(params)
-
-      const [configuration, scopeTree] = await Promise.all([
-        configurationRepository.all(effectiveScope, effectiveScopeId),
-        storeScopeTree.build()
+      const [accessToken, scopeTree] = await Promise.all([
+        GenerateAccessToken.execute(params),
+        new StoreScopeTree(params).build()
       ])
+
+      const configurationRepository = new ConfigurationRepository(accessToken, scopeTree)
+      const configuration = await configurationRepository.all(effectiveScope, effectiveScopeId)
 
       return RuntimeActionResponse.success({
         configuration,
