@@ -47,6 +47,7 @@ jobs:
   build:
     name: Build
     runs-on: ${{ matrix.os }}
+    environment: stage
     strategy:
       matrix:
         node-version: ['20']
@@ -77,20 +78,26 @@ jobs:
         with:
           os: ${{ matrix.os }}
           command: oauth_sts
-          CLIENTID: ${{ secrets.CLIENTID_STAGE }}
-          CLIENTSECRET: ${{ secrets.CLIENTSECRET_STAGE }}
-          TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCID_STAGE }}
-          TECHNICALACCOUNTEMAIL: ${{ secrets.TECHNICALACCEMAIL_STAGE }}
-          IMSORGID: ${{ secrets.IMSORGID_STAGE }}
-          SCOPES: ${{ secrets.SCOPES_STAGE }}
+          CLIENTID: ${{ secrets.CLIENTID }}
+          CLIENTSECRET: ${{ secrets.CLIENTSECRET }}
+          TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCID }}
+          TECHNICALACCOUNTEMAIL: ${{ secrets.TECHNICALACCEMAIL }}
+          IMSORGID: ${{ secrets.IMSORGID }}
+          SCOPES: ${{ secrets.SCOPES }}
 
       - name: Build Application (AIO CLI)
         env:
-          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE_STAGE }}
-          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID_STAGE }}
-          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET_STAGE }}
-          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID_STAGE }}
-          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES_STAGE }}
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE }}
+          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID }}
+          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET }}
+          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID }}
+          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES }}
+          COMMERCE_BASE_URL: ${{ vars.COMMERCE_BASE_URL }}
+          COMMERCE_CONSUMER_KEY: ${{ secrets.COMMERCE_CONSUMER_KEY }}
+          COMMERCE_CONSUMER_SECRET: ${{ secrets.COMMERCE_CONSUMER_SECRET }}
+          COMMERCE_ACCESS_TOKEN: ${{ secrets.COMMERCE_ACCESS_TOKEN }}
+          COMMERCE_ACCESS_TOKEN_SECRET: ${{ secrets.COMMERCE_ACCESS_TOKEN_SECRET }}
+          PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID: ${{ vars.PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID }}
         uses: adobe/aio-apps-action@4.1.0
         with:
           os: ${{ matrix.os }}

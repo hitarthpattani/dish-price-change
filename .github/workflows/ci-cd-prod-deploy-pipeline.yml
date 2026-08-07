@@ -49,6 +49,7 @@ jobs:
   deploy:
     name: Deploy to Prod
     runs-on: ${{ matrix.os }}
+    environment: prod
     strategy:
       max-parallel: 1
       matrix:
@@ -80,20 +81,26 @@ jobs:
         with:
           os: ${{ matrix.os }}
           command: oauth_sts
-          CLIENTID: ${{ secrets.CLIENTID_PROD }}
-          CLIENTSECRET: ${{ secrets.CLIENTSECRET_PROD }}
-          TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCID_PROD }}
-          TECHNICALACCOUNTEMAIL: ${{ secrets.TECHNICALACCEMAIL_PROD }}
-          IMSORGID: ${{ secrets.IMSORGID_PROD }}
-          SCOPES: ${{ secrets.SCOPES_PROD }}
+          CLIENTID: ${{ secrets.CLIENTID }}
+          CLIENTSECRET: ${{ secrets.CLIENTSECRET }}
+          TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCID }}
+          TECHNICALACCOUNTEMAIL: ${{ secrets.TECHNICALACCEMAIL }}
+          IMSORGID: ${{ secrets.IMSORGID }}
+          SCOPES: ${{ secrets.SCOPES }}
 
       - name: Build Application (AIO CLI)
         env:
-          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE_PROD }}
-          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID_PROD }}
-          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET_PROD }}
-          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID_PROD }}
-          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES_PROD }}
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE }}
+          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID }}
+          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET }}
+          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID }}
+          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES }}
+          COMMERCE_BASE_URL: ${{ vars.COMMERCE_BASE_URL }}
+          COMMERCE_CONSUMER_KEY: ${{ secrets.COMMERCE_CONSUMER_KEY }}
+          COMMERCE_CONSUMER_SECRET: ${{ secrets.COMMERCE_CONSUMER_SECRET }}
+          COMMERCE_ACCESS_TOKEN: ${{ secrets.COMMERCE_ACCESS_TOKEN }}
+          COMMERCE_ACCESS_TOKEN_SECRET: ${{ secrets.COMMERCE_ACCESS_TOKEN_SECRET }}
+          PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID: ${{ vars.PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID }}
         uses: adobe/aio-apps-action@4.1.0
         with:
           os: ${{ matrix.os }}
@@ -101,18 +108,24 @@ jobs:
 
       - name: Deploy Application (AIO CLI)
         env:
-          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE_PROD }}
-          AIO_RUNTIME_AUTH: ${{ secrets.AIO_RUNTIME_AUTH_PROD }}
-          AIO_PROJECT_ID: ${{ secrets.AIO_PROJECT_ID_PROD }}
-          AIO_PROJECT_NAME: ${{ secrets.AIO_PROJECT_NAME_PROD }}
-          AIO_PROJECT_ORG_ID: ${{ secrets.AIO_PROJECT_ORG_ID_PROD }}
-          AIO_PROJECT_WORKSPACE_ID: ${{ secrets.AIO_PROJECT_WORKSPACE_ID_PROD }}
-          AIO_PROJECT_WORKSPACE_NAME: ${{ secrets.AIO_PROJECT_WORKSPACE_NAME_PROD }}
-          AIO_PROJECT_WORKSPACE_DETAILS_SERVICES: ${{ secrets.AIO_PROJECT_WORKSPACE_DETAILS_SERVICES_PROD }}
-          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID_PROD }}
-          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET_PROD }}
-          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID_PROD }}
-          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES_PROD }}
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE }}
+          AIO_RUNTIME_AUTH: ${{ secrets.AIO_RUNTIME_AUTH }}
+          AIO_PROJECT_ID: ${{ secrets.AIO_PROJECT_ID }}
+          AIO_PROJECT_NAME: ${{ secrets.AIO_PROJECT_NAME }}
+          AIO_PROJECT_ORG_ID: ${{ secrets.AIO_PROJECT_ORG_ID }}
+          AIO_PROJECT_WORKSPACE_ID: ${{ secrets.AIO_PROJECT_WORKSPACE_ID }}
+          AIO_PROJECT_WORKSPACE_NAME: ${{ secrets.AIO_PROJECT_WORKSPACE_NAME }}
+          AIO_PROJECT_WORKSPACE_DETAILS_SERVICES: ${{ secrets.AIO_PROJECT_WORKSPACE_DETAILS_SERVICES }}
+          IMS_OAUTH_S2S_CLIENT_ID: ${{ secrets.CLIENTID }}
+          IMS_OAUTH_S2S_CLIENT_SECRET: ${{ secrets.CLIENTSECRET }}
+          IMS_OAUTH_S2S_ORG_ID: ${{ secrets.IMSORGID }}
+          IMS_OAUTH_S2S_SCOPES: ${{ secrets.SCOPES }}
+          COMMERCE_BASE_URL: ${{ vars.COMMERCE_BASE_URL }}
+          COMMERCE_CONSUMER_KEY: ${{ secrets.COMMERCE_CONSUMER_KEY }}
+          COMMERCE_CONSUMER_SECRET: ${{ secrets.COMMERCE_CONSUMER_SECRET }}
+          COMMERCE_ACCESS_TOKEN: ${{ secrets.COMMERCE_ACCESS_TOKEN }}
+          COMMERCE_ACCESS_TOKEN_SECRET: ${{ secrets.COMMERCE_ACCESS_TOKEN_SECRET }}
+          PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID: ${{ vars.PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID }}
         uses: adobe/aio-apps-action@4.1.0
         with:
           os: ${{ matrix.os }}
