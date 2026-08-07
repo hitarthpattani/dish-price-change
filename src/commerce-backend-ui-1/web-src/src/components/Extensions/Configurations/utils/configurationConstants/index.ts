@@ -24,7 +24,9 @@ export const CONFIGURATION_TEXT = {
   /** Section title for the "Default Config" scope */
   DEFAULT_SECTION_TITLE: 'Default',
   /** Fallback label for the "Default Config" scope */
-  DEFAULT_SCOPE_LABEL: 'Default Config'
+  DEFAULT_SCOPE_LABEL: 'Default Config',
+  /** Shown instead of the form when no fields are defined for the selected scope */
+  NO_FIELDS_MESSAGE: 'There are no configuration settings available for the selected scope.'
 } as const
 
 /**

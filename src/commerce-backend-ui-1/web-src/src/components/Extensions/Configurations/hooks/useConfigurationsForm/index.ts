@@ -44,8 +44,11 @@ export const useConfigurationsForm = (
   scopeId: number,
   initialConfiguration: Record<string, string>
 ) => {
-  // Static field/group schema — does not depend on backend data
-  const formFields: FormBuilderComponents = useMemo(() => getConfigurationsFormFields(), [])
+  // Static field/group schema, filtered down to the fields available at this scope
+  const formFields: FormBuilderComponents = useMemo(
+    () => getConfigurationsFormFields(scope),
+    [scope]
+  )
 
   // Current configuration values being edited, seeded from the already-loaded configuration
   const [editItem, setEditItem] = useState<Record<string, string>>(initialConfiguration)

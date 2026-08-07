@@ -4,7 +4,9 @@
 
 import React from 'react'
 import { DataForm } from '@adobe-commerce/aio-experience-kit'
+import { Content, Text } from '@adobe/react-spectrum'
 import { useConfigurationsForm } from '@components/Extensions/Configurations/hooks/useConfigurationsForm'
+import { CONFIGURATION_TEXT } from '@components/Extensions/Configurations/utils/configurationConstants'
 
 /**
  * Configurations Form Component
@@ -55,6 +57,14 @@ export const ConfigurationsForm: React.FC<{
     scopeId,
     configuration
   )
+
+  if (formFields.groups.length === 0) {
+    return (
+      <Content>
+        <Text>{CONFIGURATION_TEXT.NO_FIELDS_MESSAGE}</Text>
+      </Content>
+    )
+  }
 
   return (
     <DataForm
