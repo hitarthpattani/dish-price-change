@@ -17,7 +17,7 @@ import { AdobeCommerceClient, Oauth1aConnection } from '@adobe-commerce/aio-tool
  *
  * Consumed by: Flow 3 (eligibility/package-pricing), Flow 5 (bundle GUID cache rebuild).
  */
-export class CatalogClient {
+export class AdobeCommerceCatalogClient {
   private client: AdobeCommerceClient
 
   constructor(params: Record<string, string>) {

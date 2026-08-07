@@ -2,11 +2,11 @@
  * <license header>
  */
 
-import { CatalogClient } from '@lib/adobe-commerce/catalog'
+import { AdobeCommerceCatalogClient } from '@lib/adobe-commerce/catalog'
 
-describe('CatalogClient', () => {
+describe('AdobeCommerceCatalogClient', () => {
   const createClient = () =>
-    new CatalogClient({
+    new AdobeCommerceCatalogClient({
       COMMERCE_BASE_URL: 'https://commerce.example.com',
       COMMERCE_CONSUMER_KEY: 'key',
       COMMERCE_CONSUMER_SECRET: 'secret',
@@ -15,7 +15,7 @@ describe('CatalogClient', () => {
     })
 
   it('should apply fallback defaults when params are missing', () => {
-    expect(() => new CatalogClient({})).toThrow('Commerce URL must be provided')
+    expect(() => new AdobeCommerceCatalogClient({})).toThrow('Commerce URL must be provided')
   })
 
   describe('fetchEnabledPackageProducts', () => {

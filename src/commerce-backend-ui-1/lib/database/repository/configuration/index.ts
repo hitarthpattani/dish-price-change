@@ -5,6 +5,7 @@
 /* This file exposes the ConfigurationRepository class */
 
 import { AbdbRepository } from '@adobe-commerce/aio-toolkit'
+import type { AbdbRepositoryFilter } from '@adobe-commerce/aio-toolkit'
 import { ConfigurationCollection } from '@lib/database/collection/configuration'
 import type { ConfigurationRecord } from '@lib/database/collection/configuration/types'
 
@@ -34,6 +35,26 @@ export class ConfigurationRepository extends AbdbRepository<ConfigurationRecord>
   }
 
   /**
+   * Wraps `findOne`, treating the "Document not found" error the underlying ABDB
+   * client throws on a miss as a `null` result — matching `findOne`'s own documented
+   * return type (`Promise<T | null>`), which its actual runtime behavior violates.
+   * Any other error is rethrown unchanged.
+   *
+   * @param filter - Query filter passed through to `findOne`.
+   * @returns The matched record, or `null` if none was found.
+   */
+  private async findOneOrNull(filter: AbdbRepositoryFilter): Promise<ConfigurationRecord | null> {
+    try {
+      return await this.findOne(filter)
+    } catch (error) {
+      if (error instanceof Error && /document not found/i.test(error.message)) {
+        return null
+      }
+      throw error
+    }
+  }
+
+  /**
    * Retrieves a configuration value with optional environment override.
    *
    * Returns the environment-specific value if a `key-env` record exists and the
@@ -54,7 +75,7 @@ export class ConfigurationRepository extends AbdbRepository<ConfigurationRecord>
   ): Promise<string | null> {
     let value: string | null = null
 
-    const record = await this.findOne({ key, scope, scope_id: scopeId })
+    const record = await this.findOneOrNull({ key, scope, scope_id: scopeId })
 
     if (record !== null) {
       value =
@@ -65,7 +86,7 @@ export class ConfigurationRepository extends AbdbRepository<ConfigurationRecord>
       value = ConfigurationRepository.DEFAULT_CONFIG[key]!
     }
 
-    const envRecord = await this.findOne({ key: `${key}-env`, scope, scope_id: scopeId })
+    const envRecord = await this.findOneOrNull({ key: `${key}-env`, scope, scope_id: scopeId })
     if (envRecord?.value) {
       const environmentKey = envRecord.value
       if (params[environmentKey] !== undefined) {
@@ -99,7 +120,7 @@ export class ConfigurationRepository extends AbdbRepository<ConfigurationRecord>
     await Promise.all(
       Object.entries(records).map(async ([key, value]) => {
         const filter = { key, scope, scope_id: scopeId }
-        const existing = await this.findOne(filter)
+        const existing = await this.findOneOrNull(filter)
         if (existing) {
           await this.updateOne({ value }, filter)
         } else {

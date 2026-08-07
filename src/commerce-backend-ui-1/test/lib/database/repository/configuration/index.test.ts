@@ -198,6 +198,41 @@ describe('ConfigurationRepository', () => {
       })
     })
 
+    it('treats a "Document not found" findOne error as no existing record and inserts', async () => {
+      const repository = createRepository()
+      jest
+        .spyOn(repository, 'findOne')
+        .mockRejectedValue(
+          new Error(
+            'AbdbCollection: unexpected error: Request abc to v1/collection/configuration/findOne failed: Document not found'
+          )
+        )
+      const insertOne = jest.spyOn(repository, 'insertOne').mockResolvedValue({})
+
+      await repository.set({ 'api-key': 'new-value' })
+
+      expect(insertOne).toHaveBeenCalledWith({
+        key: 'api-key',
+        value: 'new-value',
+        scope: 'default',
+        scope_id: 0
+      })
+    })
+
+    it('propagates a genuine findOne Error unrelated to a missing document', async () => {
+      const repository = createRepository()
+      jest.spyOn(repository, 'findOne').mockRejectedValue(new Error('network timeout'))
+
+      await expect(repository.set({ 'api-key': 'new-value' })).rejects.toThrow('network timeout')
+    })
+
+    it('propagates a non-Error value thrown by findOne', async () => {
+      const repository = createRepository()
+      jest.spyOn(repository, 'findOne').mockRejectedValue('boom')
+
+      await expect(repository.set({ 'api-key': 'new-value' })).rejects.toBe('boom')
+    })
+
     it('upserts multiple keys independently', async () => {
       const repository = createRepository()
       jest.spyOn(repository, 'findOne').mockImplementation(async filter => {

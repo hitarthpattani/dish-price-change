@@ -6,14 +6,19 @@ import type { SuccessResponse, ErrorResponse } from '@adobe-commerce/aio-toolkit
 import { main as loadAction } from '@actions/configuration/load'
 import { ConfigurationRepository } from '@lib/database/repository/configuration'
 import { GenerateAccessToken } from '@lib/utils/generate-access-token'
+import { StoreScopeTree } from '@lib/utils/store-scope-tree'
 
 type ActionParams = Record<string, unknown>
 
 jest.mock('@lib/database/repository/configuration')
 jest.mock('@lib/utils/generate-access-token')
+jest.mock('@lib/utils/store-scope-tree')
 
 describe('configuration/load action', () => {
   let mockAll: jest.Mock
+  let mockBuild: jest.Mock
+
+  const scopeTree = [{ scope: 'default', scopeId: 0, label: 'Default Config' }]
 
   const validParams: ActionParams = {
     __ow_headers: {
@@ -32,15 +37,25 @@ describe('configuration/load action', () => {
       all: mockAll
     }))
     ;(GenerateAccessToken.execute as jest.Mock).mockResolvedValue('a-valid-token')
+
+    mockBuild = jest.fn().mockResolvedValue(scopeTree)
+    ;(StoreScopeTree as unknown as jest.Mock).mockImplementation(() => ({
+      build: mockBuild
+    }))
   })
 
   it('loads configuration for the default scope', async () => {
     const result = (await loadAction(validParams)) as SuccessResponse
 
     expect(result.statusCode).toBe(200)
-    expect((result.body as Record<string, unknown>).configuration).toEqual({ 'api-key': 'value' })
+    const body = result.body as Record<string, unknown>
+    expect(body.configuration).toEqual({ 'api-key': 'value' })
+    expect(body.scope).toBe('default')
+    expect(body.scopeId).toBe(0)
+    expect(body.scopeTree).toEqual(scopeTree)
     expect(ConfigurationRepository).toHaveBeenCalledWith('a-valid-token')
-    expect(mockAll).toHaveBeenCalledWith(undefined, undefined)
+    expect(mockAll).toHaveBeenCalledWith('default', 0)
+    expect(StoreScopeTree).toHaveBeenCalledWith(validParams)
   })
 
   it('loads configuration for a custom scope and scope id', async () => {
@@ -51,6 +66,9 @@ describe('configuration/load action', () => {
     })) as SuccessResponse
 
     expect(result.statusCode).toBe(200)
+    const body = result.body as Record<string, unknown>
+    expect(body.scope).toBe('website')
+    expect(body.scopeId).toBe(2)
     expect(mockAll).toHaveBeenCalledWith('website', 2)
   })
 
@@ -70,6 +88,15 @@ describe('configuration/load action', () => {
 
     expect(result.error.statusCode).toBe(500)
     expect(result.error.body.error).toContain('lookup failure')
+  })
+
+  it('returns 500 when the scope tree build fails', async () => {
+    mockBuild.mockRejectedValue(new Error('scope tree failure'))
+
+    const result = (await loadAction(validParams)) as ErrorResponse
+
+    expect(result.error.statusCode).toBe(500)
+    expect(result.error.body.error).toContain('scope tree failure')
   })
 
   it('returns 500 with a generic message for non-Error failures', async () => {

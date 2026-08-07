@@ -42,12 +42,15 @@ describe('configuration/save action', () => {
     const result = (await saveAction(validParams)) as SuccessResponse
 
     expect(result.statusCode).toBe(200)
-    expect((result.body as Record<string, unknown>).configuration).toEqual({
+    const body = result.body as Record<string, unknown>
+    expect(body.configuration).toEqual({
       'api-key': 'value'
     })
+    expect(body.scope).toBe('default')
+    expect(body.scopeId).toBe(0)
     expect(ConfigurationRepository).toHaveBeenCalledWith('a-valid-token')
-    expect(mockSet).toHaveBeenCalledWith({ 'api-key': 'value' }, undefined, undefined)
-    expect(mockAll).toHaveBeenCalledWith(undefined, undefined)
+    expect(mockSet).toHaveBeenCalledWith({ 'api-key': 'value' }, 'default', 0)
+    expect(mockAll).toHaveBeenCalledWith('default', 0)
   })
 
   it('saves configuration for a custom scope and scope id', async () => {
@@ -58,6 +61,9 @@ describe('configuration/save action', () => {
     })) as SuccessResponse
 
     expect(result.statusCode).toBe(200)
+    const body = result.body as Record<string, unknown>
+    expect(body.scope).toBe('website')
+    expect(body.scopeId).toBe(2)
     expect(mockSet).toHaveBeenCalledWith({ 'api-key': 'value' }, 'website', 2)
     expect(mockAll).toHaveBeenCalledWith('website', 2)
   })

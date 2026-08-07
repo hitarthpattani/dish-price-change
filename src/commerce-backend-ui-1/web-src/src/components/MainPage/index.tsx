@@ -3,7 +3,14 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { View, Flex, ProgressCircle } from '@adobe/react-spectrum'
+import {
+  View,
+  Flex,
+  ProgressCircle,
+  Provider,
+  ToastContainer,
+  defaultTheme
+} from '@adobe/react-spectrum'
 import type { MainPageProps } from './types'
 import { attach } from '@adobe/uix-guest'
 import { EXTENSION_ID } from '@web/types/constants'
@@ -50,14 +57,23 @@ export const MainPage: React.FC<MainPageProps> = ({ ims }) => {
   )
 
   return (
-    <View>
-      {isLoading ? (
-        <Flex alignItems="center" justifyContent="center" height="100vh">
-          <ProgressCircle size="L" aria-label="Loading…" isIndeterminate />
-        </Flex>
-      ) : (
-        <View width="size-6000">{renderMainContainer()}</View>
-      )}
-    </View>
+    // MainContainer (rendered below) has its own internal Provider, but only around its own
+    // children — ToastContainer needs an ancestor Provider of its own to resolve a theme, since
+    // it's rendered as a sibling here, not nested inside MainContainer's.
+    <Provider theme={defaultTheme} colorScheme="light" width="100%" height="100%">
+      <View width="100%" height="100%">
+        {isLoading ? (
+          <Flex alignItems="center" justifyContent="center" height="100vh">
+            <ProgressCircle size="L" aria-label="Loading…" isIndeterminate />
+          </Flex>
+        ) : (
+          <View width="100%">{renderMainContainer()}</View>
+        )}
+        {/* Renders queued ToastQueue.positive()/negative() toasts (e.g. ManageCaches,
+            Configurations save feedback) — nothing in MainContainer or DataForm's own
+            Provider renders one. */}
+        <ToastContainer placement="top end" />
+      </View>
+    </Provider>
   )
 }
