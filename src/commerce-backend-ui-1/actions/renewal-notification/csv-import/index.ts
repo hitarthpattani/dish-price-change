@@ -25,9 +25,8 @@ export const main = RuntimeAction.execute(
     //
     // Business logic (from plan §7.4.a):
     //   1. Parse the CSV; reject rows missing `uuid` or `renewal_date` (count as skipped).
-    //   2. For each valid row build request JSON { id: '', uuid, object_type: 'subscription' },
-    //      set status=NEW, retry_count=0, source=FILE, event_type='renewal.scheduled', and
-    //      renewal_date from the row.
+    //   2. For each valid row build { uuid, status: NEW, retry_count: 0, source: FILE,
+    //      event_type: 'renewal.scheduled', renewal_date } from the row.
     //   3. Bulk insert via the repository (insertMany).
     //   4. On failure: LOG the error and include it in `errors[]` (Reinterpretation §11 item 6 —
     //      RESOLVED: log-only; do NOT publish an AJO import.error event).

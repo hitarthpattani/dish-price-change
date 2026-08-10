@@ -13,7 +13,7 @@ import {
 describe('PrerenewalNotificationsRepository', () => {
   const validId = '507f1f77bcf86cd799439011'
   const record: PrerenewalNotificationRecord = {
-    request: '{}',
+    uuid: 'uuid-123',
     status: PrerenewalNotificationStatus.NEW,
     retry_count: 0,
     renewal_date: '2026-01-01T00:00:00.000Z'

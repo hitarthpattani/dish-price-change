@@ -4,7 +4,7 @@
 
 jest.mock('@lib/utils/report-builder')
 
-import { GenerateFailurePayload } from '@actions/renewal/notification/generate-failure-payload'
+import { GenerateFailurePayload } from '@actions/renewal-notification/webhook/generate-failure-payload'
 import { ReportBuilder } from '@lib/utils/report-builder'
 
 describe('GenerateFailurePayload', () => {

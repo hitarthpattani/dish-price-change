@@ -62,12 +62,33 @@ describe('pre-renewal-persist-consumer', () => {
     expect(GenerateAccessToken.execute).toHaveBeenCalledWith(baseParams)
     expect(PrerenewalNotificationsRepository).toHaveBeenCalledWith('a-valid-token')
     expect(mockInsertNotification).toHaveBeenCalledWith({
-      request: JSON.stringify(notification),
+      uuid: 'uuid-123',
       event_type: 'renewal.scheduled',
       notification_time: '2026-08-07T00:00:00.000Z',
       renewal_date: '2026-08-20T00:00:00.000Z',
       source: 'webhook'
     })
+  })
+
+  it('reports the failure and returns 500 when uuid is missing', async () => {
+    const { uuid: _omit, ...rest } = notification
+
+    const response = (await consumer({ ...baseParams, data: rest })) as ErrorResponse
+
+    expect(response.error.statusCode).toBe(500)
+    expect(response.error.body.error).toContain('missing a valid uuid')
+    expect(GenerateAccessToken.execute).not.toHaveBeenCalled()
+    expect(mockPublish).toHaveBeenCalledWith('com.dish.pricechange.reporting.queued', reportRow)
+  })
+
+  it('reports the failure and returns 500 when uuid is blank', async () => {
+    const response = (await consumer({
+      ...baseParams,
+      data: { ...notification, uuid: '  ' }
+    })) as ErrorResponse
+
+    expect(response.error.statusCode).toBe(500)
+    expect(response.error.body.error).toContain('missing a valid uuid')
   })
 
   it('falls back renewal_date to notification_time when absent', async () => {

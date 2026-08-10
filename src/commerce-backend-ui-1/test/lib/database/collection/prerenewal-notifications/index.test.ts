@@ -17,7 +17,7 @@ describe('PrerenewalNotificationsCollection', () => {
     const columnNames = collection.getColumns().map(column => column.getName())
 
     expect(columnNames).toEqual([
-      'request',
+      'uuid',
       'status',
       'retry_count',
       'event_type',

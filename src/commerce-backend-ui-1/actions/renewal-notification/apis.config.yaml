@@ -1,6 +1,6 @@
 renewal-notification:
   v1:
     renewalNotification:
-      notification:
+      webhook:
         method: POST
         response: http

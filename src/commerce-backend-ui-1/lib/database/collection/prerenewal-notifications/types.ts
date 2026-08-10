@@ -28,8 +28,8 @@ export enum PrerenewalNotificationStatus {
  * price-change pipeline with retry bookkeeping.
  */
 export interface PrerenewalNotificationRecord extends AbdbRecord {
-  /** JSON-encoded renewal payload. */
-  request: string
+  /** Subscription UUID. */
+  uuid: string
 
   /** Queue lifecycle state. Retry attempts are tracked separately by `retry_count`. */
   status: PrerenewalNotificationStatus
@@ -55,8 +55,8 @@ export interface PrerenewalNotificationRecord extends AbdbRecord {
 
 /** Input accepted by repository insert methods before lifecycle defaults are applied. */
 export interface PrerenewalNotificationInput extends AbdbRecord {
-  /** JSON-encoded renewal payload. */
-  request: string
+  /** Subscription UUID. */
+  uuid: string
 
   /** Optional caller value; the repository always initializes this to `NEW`. */
   status?: PrerenewalNotificationStatus

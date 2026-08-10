@@ -17,7 +17,7 @@ export class PrerenewalNotificationsCollection extends AbdbCollection {
   constructor() {
     super('prerenewal_notifications', collection => {
       collection
-        .addColumn('request', AbdbColumnType.STRING, 'Request Payload (JSON)', true)
+        .addColumn('uuid', AbdbColumnType.STRING, 'Subscription UUID', true)
         .addColumn('status', AbdbColumnType.NUMBER, 'Status', true)
         .addColumn('retry_count', AbdbColumnType.NUMBER, 'Retry Count', true)
         .addColumn('event_type', AbdbColumnType.STRING, 'Event Type', false)

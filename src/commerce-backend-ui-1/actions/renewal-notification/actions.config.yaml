@@ -1,5 +1,5 @@
-notification:
-  function: ../../../../build/actions/renewal/notification/index.js
+webhook:
+  function: ../../../../build/actions/renewal-notification/webhook/index.js
   web: 'yes'
   runtime: nodejs:22
   inputs:
@@ -21,7 +21,7 @@ notification:
     timeout: 55000
     memory: 512
 csv-import:
-  function: ../../../../build/actions/renewal/csv-import/index.js
+  function: ../../../../build/actions/renewal-notification/csv-import/index.js
   web: 'yes'
   runtime: nodejs:22
   inputs:

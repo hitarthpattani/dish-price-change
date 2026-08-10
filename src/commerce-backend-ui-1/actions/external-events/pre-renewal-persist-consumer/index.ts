@@ -21,7 +21,7 @@ const REPORTING_QUEUED_EVENT = 'com.dish.pricechange.reporting.queued'
  * EventConsumerAction subscribed to `com.dish.pricechange.prerenewal.received` on the custom
  * internal provider (replaces the RabbitMQ consumer `sling.handle.prerenewal.notification`).
  *
- * Reinterpretation §11 item 1 (Internal I/O Events Provider): as with `renewal/notification`,
+ * Reinterpretation §11 item 1 (Internal I/O Events Provider): as with `renewal-notification/webhook`,
  * the failure-report publish target is the provider created automatically by
  * aio-commerce-lib-app's built-in externalEventsStep; its id is read from the
  * `PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID` param (see `.env.example`), assumed to exist.
@@ -36,6 +36,10 @@ export const main = EventConsumerAction.execute(
 
     try {
       logger.info('Persisting pre-renewal notification')
+
+      if (typeof notification.uuid !== 'string' || notification.uuid.trim() === '') {
+        throw new Error('Notification is missing a valid uuid')
+      }
 
       const accessToken = await GenerateAccessToken.execute(params)
       const repository = new PrerenewalNotificationsRepository(accessToken)
@@ -55,7 +59,7 @@ export const main = EventConsumerAction.execute(
           : (notificationTime ?? new Date().toISOString())
 
       await repository.insertNotification({
-        request: JSON.stringify(notification),
+        uuid: notification.uuid,
         event_type: eventType,
         notification_time: notificationTime,
         renewal_date: renewalDate,

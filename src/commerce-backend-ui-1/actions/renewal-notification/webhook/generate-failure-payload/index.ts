@@ -15,7 +15,7 @@ const MESSAGE_CONSUMPTION_STEP = 'message_consumption'
  * failure (plan §6.4.a step 4), ready to be forwarded to the UMS reporting pipeline via
  * `reporting.queued`.
  *
- * @module actions/renewal/notification/generate-failure-payload
+ * @module actions/renewal-notification/webhook/generate-failure-payload
  *
  * @example
  * ```typescript

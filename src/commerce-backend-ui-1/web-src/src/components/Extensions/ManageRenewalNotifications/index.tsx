@@ -27,7 +27,7 @@ import type { ManageRenewalNotificationsProps } from './types'
  * Renewal CSV Upload screen (plan §7.4.e) — feature `ManageRenewalNotifications`.
  *
  * A Form with a single-file CSV FileUpload plus a DataTable summarising the import result
- * (imported / skipped / errors). Data source: the `renewal/csv-import` action (§7.4.a).
+ * (imported / skipped / errors). Data source: the `renewal-notification/csv-import` action (§7.4.a).
  */
 const resultColumns: DataTableColumn[] = [
   { uid: 'uuid', name: 'UUID' },
@@ -63,7 +63,7 @@ export const ManageRenewalNotifications: React.FC<ManageRenewalNotificationsProp
 
       try {
         // TODO: Implement per migration plan §7.4.e "Renewal CSV Upload" (+ §7.4.a "csv-import")
-        //   - POST the selected CSV to the `renewal/csv-import` action (base64 content from
+        //   - POST the selected CSV to the `renewal-notification/csv-import` action (base64 content from
         //     FileInfo), forwarding `actionCallHeaders` (Authorization / IMS org).
         //   - Map { imported, skipped, errors[] } into result-summary rows.
         void actionCallHeaders

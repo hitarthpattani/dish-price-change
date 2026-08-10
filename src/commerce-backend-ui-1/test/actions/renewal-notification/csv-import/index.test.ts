@@ -3,7 +3,7 @@
  */
 
 import type { SuccessResponse } from '@adobe-commerce/aio-toolkit'
-import { main as csvImport } from '@actions/renewal/csv-import'
+import { main as csvImport } from '@actions/renewal-notification/csv-import'
 
 type ActionParams = Record<string, unknown>
 

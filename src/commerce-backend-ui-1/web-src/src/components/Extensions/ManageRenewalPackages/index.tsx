@@ -11,7 +11,7 @@ import { DataTable, DataTableColumn } from '@adobe-commerce/aio-experience-kit'
  * Renewal CSV Upload screen (plan §7.4.e) — feature `ManageRenewalNotifications`.
  *
  * A Form with a single-file CSV FileUpload plus a DataTable summarising the import result
- * (imported / skipped / errors). Data source: the `renewal/csv-import` action (§7.4.a).
+ * (imported / skipped / errors). Data source: the `renewal-notification/csv-import` action (§7.4.a).
  */
 const resultColumns: DataTableColumn[] = [
   { uid: 'uuid', name: 'UUID' },

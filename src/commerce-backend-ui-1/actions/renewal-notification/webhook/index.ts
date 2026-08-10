@@ -12,7 +12,6 @@ import { ConfigurationManager } from '@lib/utils/configuration-manager'
 import { GenerateAccessToken } from '@lib/utils/generate-access-token'
 import { StoreScopeTree } from '@lib/utils/store-scope-tree'
 import { EventsPublisher } from '@lib/utils/events-publisher'
-import { ExtractNotificationPayload } from './extract-notification-payload'
 import { GenerateFailurePayload } from './generate-failure-payload'
 
 /** businessConfig key gating the price-change feature (plan §6.4.a step 1). */
@@ -31,7 +30,7 @@ const PRERENEWAL_RECEIVED_EVENT = 'com.dish.pricechange.prerenewal.received'
 const REPORTING_QUEUED_EVENT = 'com.dish.pricechange.reporting.queued'
 
 /**
- * notification (plan §6.4.a, formerly renewal-notification-receiver) — package `renewal`.
+ * webhook (plan §6.4.a, formerly renewal-notification-receiver) — package `renewal-notification`.
  *
  * Public REST entry point: POST v1/renewalNotification (source: POST /V1/renewalNotification).
  *
@@ -41,7 +40,7 @@ const REPORTING_QUEUED_EVENT = 'com.dish.pricechange.reporting.queued'
  * dropped (no price_change_auth_username/password config).
  */
 export const main = RuntimeAction.execute(
-  'notification',
+  'webhook',
   [HttpMethod.POST],
   ['uuid', 'event_type'],
   [],
@@ -80,9 +79,15 @@ export const main = RuntimeAction.execute(
       }
 
       // Step 2 (plan §6.4.a): stamp notification_time on the payload forwarded downstream.
-      const notification = {
-        ...ExtractNotificationPayload.execute(params),
+      // Only the fields `pre-renewal-persist-consumer` actually persists are forwarded — an
+      // allowlist, rather than passing through whatever else the webhook happened to send.
+      const notification: Record<string, unknown> = {
+        uuid: params.uuid,
+        event_type: eventType,
         notification_time: new Date().toISOString()
+      }
+      if (typeof params.renewal_date === 'string') {
+        notification.renewal_date = params.renewal_date
       }
 
       // Step 4 (plan §6.4.a): publish to the internal provider; report + 422 on failure.

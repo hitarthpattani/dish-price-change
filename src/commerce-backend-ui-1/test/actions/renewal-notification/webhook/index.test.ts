@@ -3,7 +3,7 @@
  */
 
 import type { SuccessResponse, ErrorResponse } from '@adobe-commerce/aio-toolkit'
-import { main as receiver } from '@actions/renewal/notification'
+import { main as receiver } from '@actions/renewal-notification/webhook'
 import { ConfigurationManager } from '@lib/utils/configuration-manager'
 import { GenerateAccessToken } from '@lib/utils/generate-access-token'
 import { StoreScopeTree } from '@lib/utils/store-scope-tree'
@@ -18,7 +18,7 @@ jest.mock('@lib/utils/store-scope-tree')
 jest.mock('@lib/utils/events-publisher')
 jest.mock('@lib/utils/report-builder')
 
-describe('notification', () => {
+describe('webhook', () => {
   let mockGet: jest.Mock
   let mockBuild: jest.Mock
   let mockPublish: jest.Mock
@@ -116,7 +116,7 @@ describe('notification', () => {
     expect(mockPublish).toHaveBeenCalledTimes(1)
   })
 
-  it('publishes the stamped, filtered notification payload and returns success', async () => {
+  it('publishes the stamped, allowlisted notification payload and returns success', async () => {
     const response = (await receiver(baseParams)) as SuccessResponse
     const body = response.body as Record<string, unknown>
 
@@ -127,12 +127,26 @@ describe('notification', () => {
     expect(mockPublish).toHaveBeenCalledTimes(1)
     const [eventType, payload] = mockPublish.mock.calls[0]
     expect(eventType).toBe('com.dish.pricechange.prerenewal.received')
-    expect(payload).toMatchObject({ uuid: 'uuid-123', event_type: 'renewal.scheduled' })
     expect(typeof payload.notification_time).toBe('string')
-    expect(payload).not.toHaveProperty('__ow_headers')
-    expect(payload).not.toHaveProperty('LOG_LEVEL')
-    expect(payload).not.toHaveProperty('IMS_OAUTH_S2S_CLIENT_ID')
-    expect(payload).not.toHaveProperty('PRICE_CHANGE_INTERNAL_EVENTS_PROVIDER_ID')
+    expect(payload).toEqual({
+      uuid: 'uuid-123',
+      event_type: 'renewal.scheduled',
+      notification_time: payload.notification_time
+    })
+  })
+
+  it('forwards renewal_date on the published payload when present', async () => {
+    await receiver({ ...baseParams, renewal_date: '2026-08-20T00:00:00.000Z' })
+
+    const [, payload] = mockPublish.mock.calls[0]
+    expect(payload.renewal_date).toBe('2026-08-20T00:00:00.000Z')
+  })
+
+  it('omits renewal_date from the published payload when it is not a string', async () => {
+    await receiver({ ...baseParams, renewal_date: 12345 })
+
+    const [, payload] = mockPublish.mock.calls[0]
+    expect(payload).not.toHaveProperty('renewal_date')
   })
 
   it('reports the failure and returns 422 when the publish fails', async () => {

@@ -37,9 +37,9 @@ runtimeManifest:
       license: Apache-2.0
       actions:
         $include: actions/price-change/actions.config.yaml
-    renewal:
+    renewal-notification:
       license: Apache-2.0
       actions:
-        $include: actions/renewal/actions.config.yaml
+        $include: actions/renewal-notification/actions.config.yaml
       apis:
-        $include: actions/renewal/apis.config.yaml
+        $include: actions/renewal-notification/apis.config.yaml
