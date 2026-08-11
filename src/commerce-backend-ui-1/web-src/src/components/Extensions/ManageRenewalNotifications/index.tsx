@@ -3,83 +3,39 @@
  */
 
 import React, { useCallback, useState } from 'react'
+import { Content, Divider, Flex, Heading, Text, View, Well } from '@adobe/react-spectrum'
+import { DataTable } from '@adobe-commerce/aio-experience-kit'
+
+import { UploadForm } from './components/UploadForm'
+import { useNotificationGrid } from './hooks/useNotificationGrid'
 import {
-  ActionButton,
-  Flex,
-  Form,
-  Heading,
-  ProgressCircle,
-  View,
-  Text,
-  Content,
-  Well,
-  Divider
-} from '@adobe/react-spectrum'
-
-import SaveFloppy from '@spectrum-icons/workflow/SaveFloppy'
-import Back from '@spectrum-icons/workflow/Back'
-
-import { FileUpload, DataTable, useRouteParams } from '@adobe-commerce/aio-experience-kit'
-import type { FileInfo, DataTableColumn, DataTableRow } from '@adobe-commerce/aio-experience-kit'
+  NOTIFICATION_UPLOAD_TEXT,
+  NOTIFICATION_GRID_TEXT,
+  NOTIFICATION_GRID_COLUMNS
+} from './utils/notificationGridConstants'
 import type { ManageRenewalNotificationsProps } from './types'
 
 /**
- * Renewal CSV Upload screen (plan §7.4.e) — feature `ManageRenewalNotifications`.
+ * Renewal Notifications screen (plan §7.4.e) — feature `ManageRenewalNotifications`.
  *
- * A Form with a single-file CSV FileUpload plus a DataTable summarising the import result
- * (imported / skipped / errors). Data source: the `renewal-notification/csv-import` action (§7.4.a).
+ * Combines the CSV upload form (`renewal-notification/upload`, §7.4.a) with a DataTable
+ * listing queued notifications (`renewal-notification/list`). Uploading a file triggers a
+ * grid reload via `resetTrigger`. The heading/description live here (not in `UploadForm`),
+ * matching the Configurations/ConfigurationsForm split.
  */
-const resultColumns: DataTableColumn[] = [
-  { uid: 'uuid', name: 'UUID' },
-  { uid: 'status', name: 'Status' },
-  { uid: 'message', name: 'Message' }
-]
-
 export const ManageRenewalNotifications: React.FC<ManageRenewalNotificationsProps> = ({
   actionCallHeaders
 }) => {
-  const service = useRouteParams()
-  const navigate = service.getNavigate()
-  const [results, setResults] = useState<DataTableRow[]>([])
-  const [selectedFiles, setSelectedFiles] = useState<FileInfo[]>([])
-
-  // State for tracking form submission
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  /** Store the file selection until the form is submitted or cancelled. */
-  const onSelect = async (files: FileInfo[]): Promise<void> => {
-    setSelectedFiles(files)
-  }
-
-  /**
-   * Handle submission of the selected renewal-notification CSV file.
-   *
-   * @param event - Form submission event.
-   */
-  const onFormSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-      event.preventDefault()
-      setIsSubmitting(true)
-
-      try {
-        // TODO: Implement per migration plan §7.4.e "Renewal CSV Upload" (+ §7.4.a "csv-import")
-        //   - POST the selected CSV to the `renewal-notification/csv-import` action (base64 content from
-        //     FileInfo), forwarding `actionCallHeaders` (Authorization / IMS org).
-        //   - Map { imported, skipped, errors[] } into result-summary rows.
-        void actionCallHeaders
-        void selectedFiles
-        setResults([])
-      } finally {
-        setIsSubmitting(false)
-      }
-    },
-    [actionCallHeaders, selectedFiles]
+  const [resetTrigger, setResetTrigger] = useState(0)
+  const { isProcessing, gridData, handleGridLoad } = useNotificationGrid(
+    actionCallHeaders,
+    resetTrigger
   )
 
-  /** Navigate back to the dashboard without submitting the form. */
-  const onCancel = useCallback((): void => {
-    navigate('/')
-  }, [navigate])
+  /** Bumps `resetTrigger` so the grid reloads after a successful upload */
+  const handleUploadSuccess = useCallback(() => {
+    setResetTrigger(prev => prev + 1)
+  }, [])
 
   return (
     <View
@@ -89,85 +45,39 @@ export const ManageRenewalNotifications: React.FC<ManageRenewalNotificationsProp
       paddingBottom={'size-50'}
     >
       <Well>
-        <Form
-          isRequired
-          isDisabled={isSubmitting}
-          validationBehavior="native"
-          onSubmit={onFormSubmit}
-        >
-          {/* Header Section */}
-          <Flex direction="column" gap="size-100" marginTop="size-100" marginBottom="size-300">
-            <Heading level={3} marginTop={0} marginBottom="size-50">
-              Upload Renewal Notifications
-            </Heading>
-            <Content>
-              <Text>
-                Upload a CSV file containing subscription renewals. The file must include columns
-                for the subscription UUID and renewal date.
-              </Text>
-            </Content>
-          </Flex>
-          <Divider size="S" marginBottom="size-300" />
-          {/* File Upload Section */}
-          <Flex direction="column" gap="size-100" marginBottom="size-300">
-            <FileUpload
-              acceptedFileTypes={['text/csv']}
-              allowsMultiple={false}
-              label={'Renewals CSV File'}
-              isRequired={true}
-              isDisabled={isSubmitting}
-              onSelect={onSelect}
-            />
-            <Text UNSAFE_style={{ fontSize: '13px', color: '#6E6E6E', marginTop: '4px' }}>
-              Select a CSV file to upload. This will add more renewal details.
-            </Text>
-          </Flex>
-          <Divider size="S" marginBottom="size-250" />
-          {/* Action buttons section with loading indicator */}
-          <Flex width="100%" alignItems="center" gap="size-100">
-            {/* Show progress circle during submission */}
-            {isSubmitting && (
-              <ProgressCircle
-                size="M"
-                aria-label={'Uploading renewal notifications...'}
-                isIndeterminate
-              />
-            )}
-
-            {/* Upload button */}
-            <ActionButton type="submit" isDisabled={isSubmitting} staticColor="black">
-              <SaveFloppy size={'M'} />
-              <Text>{'Upload Renewals'}</Text>
-            </ActionButton>
-
-            {/* Back/Cancel button */}
-            <ActionButton
-              type="button"
-              staticColor="black"
-              isDisabled={isSubmitting}
-              onPress={onCancel}
-            >
-              <Back size={'M'} />
-              <Text>{'Cancel'}</Text>
-            </ActionButton>
-          </Flex>
-        </Form>
-      </Well>
-      <Well>
-        {/* Header Section */}
-        <Flex direction="column" gap="size-100" marginTop="size-100">
+        <Flex direction="column" gap="size-100" marginTop={'size-100'} marginBottom="size-300">
           <Heading level={3} marginTop={0} marginBottom="size-50">
-            Manage Renewal Notifications
+            {NOTIFICATION_UPLOAD_TEXT.HEADING}
           </Heading>
           <Content>
-            <Text>
-              This section allows you to manage renewal notifications by uploading a CSV file
-              containing subscription renewals. The file must include columns for the subscription
-              UUID and renewal date. After uploading, you can view the results in the table below.
-            </Text>
+            <Text>{NOTIFICATION_UPLOAD_TEXT.DESCRIPTION}</Text>
           </Content>
         </Flex>
-        <DataTable columns={resultColumns} data={results} />
+
+        <Divider size="S" marginBottom="size-300" />
+
+        <UploadForm actionCallHeaders={actionCallHeaders} onUploadSuccess={handleUploadSuccess} />
+      </Well>
+
+      <Well marginTop="size-100">
+        <Flex direction="column" gap="size-100" marginBottom="size-250">
+          <Heading level={3} marginTop={0} marginBottom="size-50">
+            {NOTIFICATION_GRID_TEXT.HEADING}
+          </Heading>
+          <Content>
+            <Text>{NOTIFICATION_GRID_TEXT.DESCRIPTION}</Text>
+          </Content>
+        </Flex>
+
+        <Divider size="S" marginBottom="size-250" />
+
+        <DataTable
+          columns={NOTIFICATION_GRID_COLUMNS}
+          data={gridData}
+          isProcessing={isProcessing}
+          onGridLoad={handleGridLoad}
+          maxHeight={'size-6000'}
+        />
       </Well>
     </View>
   )

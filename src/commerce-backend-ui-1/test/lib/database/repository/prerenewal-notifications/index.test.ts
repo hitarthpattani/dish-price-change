@@ -142,6 +142,92 @@ describe('PrerenewalNotificationsRepository', () => {
     })
   })
 
+  describe('listNotifications', () => {
+    it('lists notifications newest-first, capped at the default page size', async () => {
+      const repository = createRepository()
+      const find = jest.spyOn(repository, 'find').mockResolvedValue([record])
+
+      await expect(repository.listNotifications()).resolves.toEqual([record])
+      expect(find).toHaveBeenCalledWith(
+        {},
+        { page_size: 100, sort: { column: '_created_at', direction: 'desc' } }
+      )
+    })
+
+    it('honors a custom page size', async () => {
+      const repository = createRepository()
+      const find = jest.spyOn(repository, 'find').mockResolvedValue([record])
+
+      await repository.listNotifications(10)
+
+      expect(find).toHaveBeenCalledWith(
+        {},
+        { page_size: 10, sort: { column: '_created_at', direction: 'desc' } }
+      )
+    })
+  })
+
+  describe('parseCsvContent', () => {
+    it('parses a header row and data rows into objects', () => {
+      const content =
+        'uuid,renewal_date\nuuid-1,2026-03-19T08:35:00.000Z\nuuid-2,2026-03-19T06:34:00.000Z'
+
+      expect(createRepository().parseCsvContent(content)).toEqual([
+        { uuid: 'uuid-1', renewal_date: '2026-03-19T08:35:00.000Z' },
+        { uuid: 'uuid-2', renewal_date: '2026-03-19T06:34:00.000Z' }
+      ])
+    })
+
+    it('strips a leading UTF-8 BOM from the header row', () => {
+      const content = '﻿uuid,renewal_date\nuuid-1,2026-03-19T08:35:00.000Z'
+
+      expect(createRepository().parseCsvContent(content)).toEqual([
+        { uuid: 'uuid-1', renewal_date: '2026-03-19T08:35:00.000Z' }
+      ])
+    })
+
+    it('trims whitespace around headers and values', () => {
+      const content = ' uuid , renewal_date \n uuid-1 , 2026-03-19T08:35:00.000Z '
+
+      expect(createRepository().parseCsvContent(content)).toEqual([
+        { uuid: 'uuid-1', renewal_date: '2026-03-19T08:35:00.000Z' }
+      ])
+    })
+
+    it('skips blank lines between data rows', () => {
+      const content =
+        'uuid,renewal_date\nuuid-1,2026-03-19T08:35:00.000Z\n\nuuid-2,2026-03-19T06:34:00.000Z'
+
+      expect(createRepository().parseCsvContent(content)).toHaveLength(2)
+    })
+
+    it('throws when the CSV has no data rows', () => {
+      expect(() => createRepository().parseCsvContent('uuid,renewal_date')).toThrow(
+        'CSV must contain at least a header row and one data row'
+      )
+    })
+
+    it('throws when the header row is blank', () => {
+      expect(() => createRepository().parseCsvContent('\nuuid-1,2026-03-19T08:35:00.000Z')).toThrow(
+        'CSV header row is empty'
+      )
+    })
+
+    it('throws when the CSV is empty', () => {
+      expect(() => createRepository().parseCsvContent('')).toThrow(
+        'CSV must contain at least a header row and one data row'
+      )
+    })
+
+    it('throws when a row has a different column count than the header', () => {
+      const content = 'uuid,renewal_date\nuuid-1'
+
+      expect(() => createRepository().parseCsvContent(content)).toThrow(
+        'Row 2 has 1 values but expected 2'
+      )
+    })
+  })
+
   describe('findDueForPriceChange', () => {
     it('finds new and due retry rows in renewal-date order', async () => {
       const repository = createRepository()

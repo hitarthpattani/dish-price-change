@@ -191,6 +191,68 @@ export class PrerenewalNotificationsRepository extends AbdbRepository<Prerenewal
   }
 
   /**
+   * Lists notifications, most recently created first, capped at `pageSize` (admin list view).
+   *
+   * @param pageSize - Maximum number of records to return. Defaults to 100.
+   * @returns Notification records ordered by creation time, descending.
+   */
+  public async listNotifications(pageSize = 100): Promise<PrerenewalNotificationRecord[]> {
+    return this.find(
+      {},
+      { page_size: pageSize, sort: { column: '_created_at', direction: 'desc' } }
+    )
+  }
+
+  /**
+   * Parses CSV content into raw row objects, keyed by the header row's column names (used by
+   * the Flow 2 CSV upload).
+   *
+   * @param content - CSV string with a header row and data rows (e.g. `uuid,renewal_date`).
+   * @returns One object per data row, mapping each header to its trimmed cell value.
+   * @throws Error When the CSV has fewer than a header row plus one data row, or a row's column
+   *   count doesn't match the header's.
+   */
+  public parseCsvContent(content: string): Record<string, string>[] {
+    // Strip a leading UTF-8 BOM (common in Excel-exported CSVs) so it doesn't get baked into
+    // the first header name.
+    const lines = content
+      .replace(/^\uFEFF/, '')
+      .split('\n')
+      .map(line => line.trim())
+
+    if (lines.length < 2) {
+      throw new Error('CSV must contain at least a header row and one data row')
+    }
+
+    const headerLine = lines[0]
+    if (!headerLine) {
+      throw new Error('CSV header row is empty')
+    }
+    const headers = headerLine.split(',').map(header => header.trim())
+
+    const rows: Record<string, string>[] = []
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]
+      if (!line) {
+        continue
+      }
+
+      const values = line.split(',').map(value => value.trim())
+      if (values.length !== headers.length) {
+        throw new Error(`Row ${i + 1} has ${values.length} values but expected ${headers.length}`)
+      }
+
+      const row: Record<string, string> = {}
+      headers.forEach((header, index) => {
+        row[header] = values[index] as string
+      })
+      rows.push(row)
+    }
+
+    return rows
+  }
+
+  /**
    * Apply queue metadata that is not supplied by an ingestion action.
    *
    * @param rec - Incoming notification record.
