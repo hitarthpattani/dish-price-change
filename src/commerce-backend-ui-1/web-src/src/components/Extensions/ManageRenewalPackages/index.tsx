@@ -3,55 +3,45 @@
  */
 
 import React from 'react'
-import { Content, Flex, Heading, View, Well, Text } from '@adobe/react-spectrum'
-import { ManageRenewalPackagesProps, RenewalPackageType } from './types'
-import { DataTable, DataTableColumn } from '@adobe-commerce/aio-experience-kit'
+import { useRouteParams } from '@adobe-commerce/aio-experience-kit'
+import { ManageRenewalPackagesProps } from './types'
+import { PackageMappingGrid } from './components/PackageMappingGrid'
+import { PackageMappingForm } from './components/PackageMappingForm'
 
 /**
- * Renewal CSV Upload screen (plan §7.4.e) — feature `ManageRenewalNotifications`.
+ * Active/Pause Renewal Package Mappings screen (plan §8.4.e) — feature `ManageRenewalPackages`.
  *
- * A Form with a single-file CSV FileUpload plus a DataTable summarising the import result
- * (imported / skipped / errors). Data source: the `renewal-notification/upload` action (§7.4.a).
+ * Switches between a grid listing the SKU→date package mappings for the given `packageType`
+ * (`renewal-package/list?type=active|pause`) and an add/edit form (`renewal-package/get`/`save`),
+ * based on the `:component`/`:id` route segments — mirroring the
+ * `/active-renewal-packages(/:component(/:id))` style routing already used for other screens.
+ *
+ * `ManageRenewalPackages` itself is the same component instance for both the Active and Pause
+ * routes (React Router updates its `packageType` prop in place rather than unmounting it when
+ * navigating between them), so the grid/form below are keyed on `packageType` to force a remount
+ * — otherwise `DataTable`'s load-once-on-mount effect and `PackageMappingGrid`'s hook state would
+ * keep showing the previous package type's data after switching.
  */
-const resultColumns: DataTableColumn[] = [
-  { uid: 'uuid', name: 'UUID' },
-  { uid: 'status', name: 'Status' },
-  { uid: 'message', name: 'Message' }
-]
-
-/** Screen for managing renewal package mappings. */
 export const ManageRenewalPackages: React.FC<ManageRenewalPackagesProps> = ({
   actionCallHeaders,
   packageType
 }) => {
-  void actionCallHeaders
-  void packageType
+  const { getParam } = useRouteParams()
+  const component = getParam('component')
+  const id = getParam('id')
 
-  return (
-    <View
-      margin={'size-0'}
-      paddingEnd={'size-100'}
-      paddingTop={'size-50'}
-      paddingBottom={'size-50'}
-    >
-      <Well>
-        {/* Header Section */}
-        <Flex direction="column" gap="size-100" marginTop="size-100">
-          <Heading level={3} marginTop={0} marginBottom="size-50">
-            {packageType === RenewalPackageType.ACTIVE
-              ? 'Active Renewal Packages'
-              : 'Pause Renewal Packages'}
-          </Heading>
-          <Content>
-            <Text>
-              {packageType === RenewalPackageType.ACTIVE
-                ? 'Manage the active renewal packages that are currently in use.'
-                : 'Manage the renewal packages that are currently paused.'}
-            </Text>
-          </Content>
-        </Flex>
-        <DataTable columns={resultColumns} data={[]} />
-      </Well>
-    </View>
+  return component === 'form' ? (
+    <PackageMappingForm
+      key={packageType}
+      actionCallHeaders={actionCallHeaders}
+      packageType={packageType}
+      id={id}
+    />
+  ) : (
+    <PackageMappingGrid
+      key={packageType}
+      actionCallHeaders={actionCallHeaders}
+      packageType={packageType}
+    />
   )
 }

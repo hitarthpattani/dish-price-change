@@ -73,7 +73,11 @@ export const getNavigationRoutes = (actionCallHeaders: ActionCallHeaders): Navig
   },
   // Flow 3 §8.4.e — Active / Pause package mappings
   {
-    paths: ['/active-renewal-packages'],
+    paths: [
+      '/active-renewal-packages',
+      '/active-renewal-packages/:component',
+      '/active-renewal-packages/:component/:id'
+    ],
     component: (
       <ManageRenewalPackages
         actionCallHeaders={actionCallHeaders}
@@ -82,7 +86,11 @@ export const getNavigationRoutes = (actionCallHeaders: ActionCallHeaders): Navig
     )
   },
   {
-    paths: ['/pause-renewal-packages'],
+    paths: [
+      '/pause-renewal-packages',
+      '/pause-renewal-packages/:component',
+      '/pause-renewal-packages/:component/:id'
+    ],
     component: (
       <ManageRenewalPackages
         actionCallHeaders={actionCallHeaders}
