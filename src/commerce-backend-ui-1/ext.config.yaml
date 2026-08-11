@@ -33,10 +33,10 @@ runtimeManifest:
       license: Apache-2.0
       actions:
         $include: actions/external-events/actions.config.yaml
-    price-change:
+    renewal-package:
       license: Apache-2.0
       actions:
-        $include: actions/price-change/actions.config.yaml
+        $include: actions/renewal-package/actions.config.yaml
     renewal-notification:
       license: Apache-2.0
       actions:
