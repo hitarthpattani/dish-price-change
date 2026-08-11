@@ -167,6 +167,31 @@ describe('PrerenewalNotificationsRepository', () => {
     })
   })
 
+  describe('deleteNotifications', () => {
+    it('deletes rows matching the given ids and returns the deleted count', async () => {
+      const repository = createRepository()
+      const deleteSpy = jest.spyOn(repository, 'delete').mockResolvedValue({ deletedCount: 1 })
+
+      await expect(repository.deleteNotifications([validId])).resolves.toBe(1)
+      expect(deleteSpy).toHaveBeenCalledWith({ _id: { $in: [new ObjectId(validId)] } })
+    })
+
+    it('returns zero when the database omits deletedCount', async () => {
+      const repository = createRepository()
+      jest.spyOn(repository, 'delete').mockResolvedValue({})
+
+      await expect(repository.deleteNotifications([validId])).resolves.toBe(0)
+    })
+
+    it('does not call ABDB for an empty id list', async () => {
+      const repository = createRepository()
+      const deleteSpy = jest.spyOn(repository, 'delete')
+
+      await expect(repository.deleteNotifications([])).resolves.toBe(0)
+      expect(deleteSpy).not.toHaveBeenCalled()
+    })
+  })
+
   describe('parseCsvContent', () => {
     it('parses a header row and data rows into objects', () => {
       const content =

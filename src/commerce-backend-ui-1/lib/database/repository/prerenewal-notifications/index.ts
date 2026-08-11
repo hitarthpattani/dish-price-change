@@ -204,6 +204,21 @@ export class PrerenewalNotificationsRepository extends AbdbRepository<Prerenewal
   }
 
   /**
+   * Deletes notifications by their ABDB identifiers (admin grid row/mass delete action).
+   *
+   * @param ids - ABDB record identifiers to delete.
+   * @returns Number of records deleted; zero when `ids` is empty.
+   */
+  public async deleteNotifications(ids: string[]): Promise<number> {
+    if (ids.length === 0) {
+      return 0
+    }
+
+    const result = await this.delete({ _id: { $in: this.toObjectIds(ids) } })
+    return typeof result.deletedCount === 'number' ? result.deletedCount : 0
+  }
+
+  /**
    * Parses CSV content into raw row objects, keyed by the header row's column names (used by
    * the Flow 2 CSV upload).
    *

@@ -64,8 +64,29 @@ export const createNotificationService = (actionCallHeaders: Record<string, stri
     }
   }
 
+  /**
+   * Deletes renewal notifications by their ABDB record ids
+   *
+   * @param {string[]} ids - Record ids to delete
+   * @returns {Promise<NotificationListResponse>} Refreshed notification list after deletion
+   */
+  const deleteNotifications = async (ids: string[]): Promise<NotificationListResponse> => {
+    try {
+      const response = await actionWebInvoke(
+        actions['renewal-notification/delete'],
+        actionCallHeaders,
+        { ids }
+      )
+      return response as NotificationListResponse
+    } catch (error) {
+      console.error('Error deleting renewal notifications:', error)
+      throw error
+    }
+  }
+
   return {
     listNotifications,
-    uploadNotifications
+    uploadNotifications,
+    deleteNotifications
   }
 }

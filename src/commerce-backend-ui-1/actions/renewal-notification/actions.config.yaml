@@ -52,3 +52,19 @@ list:
   limits:
     timeout: 55000
     memory: 512
+delete:
+  function: ../../../../build/actions/renewal-notification/delete/index.js
+  web: 'yes'
+  runtime: nodejs:22
+  inputs:
+    LOG_LEVEL: debug
+    IMS_OAUTH_S2S_CLIENT_ID: $IMS_OAUTH_S2S_CLIENT_ID
+    IMS_OAUTH_S2S_CLIENT_SECRET: $IMS_OAUTH_S2S_CLIENT_SECRET
+    IMS_OAUTH_S2S_ORG_ID: $IMS_OAUTH_S2S_ORG_ID
+    IMS_OAUTH_S2S_SCOPES: $IMS_OAUTH_S2S_SCOPES
+  annotations:
+    require-adobe-auth: true
+    final: true
+  limits:
+    timeout: 55000
+    memory: 512

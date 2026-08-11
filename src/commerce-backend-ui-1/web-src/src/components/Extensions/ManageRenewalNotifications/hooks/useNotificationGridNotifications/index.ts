@@ -36,10 +36,26 @@ export const useNotificationGridNotifications = () => {
     })
   }, [])
 
+  /** Display a delete success toast message */
+  const showDeleteSuccess = useCallback(() => {
+    ToastQueue.positive(NOTIFICATION_MESSAGES.DELETE_SUCCESS, {
+      timeout: NOTIFICATION_MESSAGES.TOAST_TIMEOUT
+    })
+  }, [])
+
+  /** Display a delete error toast message */
+  const showDeleteError = useCallback(() => {
+    ToastQueue.negative(NOTIFICATION_MESSAGES.DELETE_ERROR, {
+      timeout: NOTIFICATION_MESSAGES.TOAST_TIMEOUT
+    })
+  }, [])
+
   return {
     showUploadSuccess,
     showUploadError,
     showValidationError,
-    showLoadError
+    showLoadError,
+    showDeleteSuccess,
+    showDeleteError
   }
 }
