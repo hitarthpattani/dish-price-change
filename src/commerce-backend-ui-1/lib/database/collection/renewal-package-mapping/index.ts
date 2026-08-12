@@ -19,7 +19,7 @@ export class RenewalPackageMappingCollection extends AbdbCollection {
       collection
         .addColumn('mapping_type', AbdbColumnType.STRING, 'Mapping Type (active|pause)', true)
         .addColumn('effective_date', AbdbColumnType.STRING, 'Effective Date (ISO-8601)', true)
-        .addColumn('packages', AbdbColumnType.STRING, 'Package SKUs (JSON array)', true)
+        .addColumn('packages', AbdbColumnType.STRING, 'Package SKUs (comma-separated)', true)
     })
   }
 }

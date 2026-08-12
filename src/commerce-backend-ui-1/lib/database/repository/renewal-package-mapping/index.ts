@@ -47,7 +47,7 @@ export class RenewalPackageMappingRepository extends AbdbRepository<SlingRenewal
    *
    * @param rec - Complete mapping record to create or replace.
    * @returns The mapping read back after the upsert.
-   * @throws Error When the mapping type or package JSON is invalid, or the upsert cannot be read back.
+   * @throws Error When the mapping type or packages list is invalid, or the upsert cannot be read back.
    */
   public async saveMapping(
     rec: SlingRenewalPackageMappingRecord
@@ -94,25 +94,16 @@ export class RenewalPackageMappingRepository extends AbdbRepository<SlingRenewal
   }
 
   /**
-   * Validate the serialized package-SKU list stored in ABDB.
+   * Validate the comma-separated package-SKU list stored in ABDB.
    *
-   * @param packages - JSON expected to contain at least one non-empty SKU string.
-   * @throws Error When the value is malformed JSON or is not a valid SKU array.
+   * @param packages - Comma-separated string expected to contain at least one non-empty SKU.
+   * @throws Error When the value has no SKUs, or any SKU is blank.
    */
   private assertPackages(packages: string): void {
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(packages)
-    } catch {
-      throw new Error('packages must be a JSON array of package SKUs')
-    }
+    const skus = packages.split(',').map(sku => sku.trim())
 
-    if (
-      !Array.isArray(parsed) ||
-      parsed.length === 0 ||
-      parsed.some(sku => typeof sku !== 'string' || sku.trim() === '')
-    ) {
-      throw new Error('packages must be a non-empty JSON array of package SKUs')
+    if (skus.length === 0 || skus.some(sku => sku === '')) {
+      throw new Error('packages must be a non-empty comma-separated list of package SKUs')
     }
   }
 }

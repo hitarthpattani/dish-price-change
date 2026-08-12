@@ -18,7 +18,7 @@ describe('save', () => {
   const mapping = {
     mapping_type: 'active',
     effective_date: '2026-01-01T00:00:00.000Z',
-    packages: '["sku-1"]'
+    packages: 'sku-1,sku-2'
   }
 
   const baseParams: ActionParams = {
@@ -50,12 +50,16 @@ describe('save', () => {
   })
 
   it('returns 500 when saving fails', async () => {
-    mockSaveMapping.mockRejectedValue(new Error('packages must be a non-empty JSON array'))
+    mockSaveMapping.mockRejectedValue(
+      new Error('packages must be a non-empty comma-separated list of package SKUs')
+    )
 
     const response = (await save(baseParams)) as ErrorResponse
 
     expect(response.error.statusCode).toBe(500)
-    expect(response.error.body.error).toContain('packages must be a non-empty JSON array')
+    expect(response.error.body.error).toContain(
+      'packages must be a non-empty comma-separated list of package SKUs'
+    )
   })
 
   it('returns 500 with a generic message for non-Error failures', async () => {

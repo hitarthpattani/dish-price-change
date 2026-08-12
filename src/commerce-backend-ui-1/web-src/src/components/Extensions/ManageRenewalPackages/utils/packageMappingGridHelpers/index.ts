@@ -32,34 +32,34 @@ export const toPackageMappingsArray = (
 }
 
 /**
- * Formats the JSON-encoded package SKU array for display (and for editing in the form)
+ * Formats the comma-separated package SKU list for display, normalizing the spacing
  *
- * @param {string} packages - JSON array of package SKUs
- * @returns {string} Comma-separated SKU list, or the raw value if it isn't valid JSON
+ * @param {string} packages - Comma-separated SKU list, as stored
+ * @returns {string} Comma-and-space-separated SKU list
  */
-export const formatPackages = (packages: string): string => {
-  try {
-    const parsed: unknown = JSON.parse(packages)
-    return Array.isArray(parsed) ? parsed.join(', ') : packages
-  } catch {
-    return packages
-  }
-}
+export const formatPackages = (packages: string): string => parsePackages(packages).join(', ')
 
 /**
- * Serializes a comma-separated SKU list (as entered in the form) back into the JSON array
- * string the `renewal-package/save` action expects
+ * Parses the comma-separated package SKU list into the string array the `packages` field's
+ * `MULTISELECT_SEARCH` expects as its `value`
  *
- * @param {string} packages - Comma-separated SKU list
- * @returns {string} JSON-encoded array of trimmed, non-empty SKUs
+ * @param {string} packages - Comma-separated SKU list, as stored
+ * @returns {string[]} Trimmed, non-empty SKU values
  */
-export const serializePackages = (packages: string): string =>
-  JSON.stringify(
-    packages
-      .split(',')
-      .map(sku => sku.trim())
-      .filter(Boolean)
-  )
+export const parsePackages = (packages: string): string[] =>
+  packages
+    .split(',')
+    .map(sku => sku.trim())
+    .filter(Boolean)
+
+/**
+ * Serializes the SKU values selected in the form back into the comma-separated string the
+ * `renewal-package/save` action expects
+ *
+ * @param {string[]} packages - Selected SKU values
+ * @returns {string} Comma-separated SKU list
+ */
+export const serializePackages = (packages: string[]): string => packages.join(',')
 
 /**
  * Normalizes an ISO-8601 value down to the plain `YYYY-MM-DD` form the `DATE` form field's

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@adobe-commerce/aio-experience-kit": "^1.0.5",
+    "@adobe-commerce/aio-experience-kit": "^1.0.6",
     "@adobe-commerce/aio-toolkit": "^1.2.7",
     "@adobe-commerce/commerce-extensibility-tools": "^3.4.0",
     "@adobe/aio-commerce-lib-app": "^1.4.0",

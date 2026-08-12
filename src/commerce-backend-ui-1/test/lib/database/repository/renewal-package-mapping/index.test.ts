@@ -13,7 +13,7 @@ describe('RenewalPackageMappingRepository', () => {
   const record: SlingRenewalPackageMappingRecord = {
     mapping_type: RenewalPackageMappingType.ACTIVE,
     effective_date: '2026-01-01T00:00:00.000Z',
-    packages: '["SKU-1","SKU-2"]'
+    packages: 'SKU-1,SKU-2'
   }
 
   const createRepository = () => new RenewalPackageMappingRepository('a-valid-token')
@@ -81,12 +81,6 @@ describe('RenewalPackageMappingRepository', () => {
       })
     })
 
-    it('rejects invalid package JSON', async () => {
-      await expect(createRepository().saveMapping({ ...record, packages: '{}' })).rejects.toThrow(
-        'packages must be a non-empty JSON array of package SKUs'
-      )
-    })
-
     it('fails when an upsert cannot be read back', async () => {
       const repository = createRepository()
       jest.spyOn(repository, 'updateOne').mockResolvedValue({ upsertedCount: 1 })
@@ -98,13 +92,13 @@ describe('RenewalPackageMappingRepository', () => {
     })
 
     it.each([
-      ['malformed JSON', '['],
-      ['an empty array', '[]'],
-      ['a blank SKU', '[""]'],
-      ['a non-string SKU', '[1]']
+      ['an empty string', ''],
+      ['only whitespace', '   '],
+      ['a blank SKU between commas', 'SKU-1,,SKU-2'],
+      ['a trailing comma', 'SKU-1,']
     ])('rejects packages containing %s', async (_description, packages) => {
       await expect(createRepository().saveMapping({ ...record, packages })).rejects.toThrow(
-        /packages must be/
+        'packages must be a non-empty comma-separated list of package SKUs'
       )
     })
   })

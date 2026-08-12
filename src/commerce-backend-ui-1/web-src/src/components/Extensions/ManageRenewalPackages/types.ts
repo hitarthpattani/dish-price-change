@@ -51,8 +51,8 @@ export interface PackageMappingSaveResponse {
   mapping: PackageMappingItem
 }
 
-/** Values edited by the `DataForm` on the add/edit screen; `packages` is comma-separated. */
+/** Values edited by the `DataForm` on the add/edit screen; `packages` is the selected SKU values. */
 export interface PackageMappingFormItem {
   effective_date: string
-  packages: string
+  packages: string[]
 }

@@ -6,7 +6,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouteParams } from '@adobe-commerce/aio-experience-kit'
 import { createPackageMappingService } from '@components/Extensions/ManageRenewalPackages/utils/packageMappingService'
 import {
-  formatPackages,
+  parsePackages,
   serializePackages,
   toDateOnly,
   getRouteBase
@@ -17,7 +17,7 @@ import type {
   RenewalPackageType
 } from '@components/Extensions/ManageRenewalPackages/types'
 
-const BLANK_ITEM: PackageMappingFormItem = { effective_date: '', packages: '' }
+const BLANK_ITEM: PackageMappingFormItem = { effective_date: '', packages: [] }
 
 /**
  * Custom hook for managing the renewal package mapping add/edit form
@@ -76,7 +76,7 @@ export const usePackageMappingForm = (
         }
         setEditItem({
           effective_date: toDateOnly(response.mapping.effective_date),
-          packages: formatPackages(response.mapping.packages)
+          packages: parsePackages(response.mapping.packages)
         })
       })
       .catch(error => {
