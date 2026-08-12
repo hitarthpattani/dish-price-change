@@ -62,6 +62,16 @@ export const serializePackages = (packages: string): string =>
   )
 
 /**
+ * Normalizes an ISO-8601 value down to the plain `YYYY-MM-DD` form the `DATE` form field's
+ * `DatePicker` requires — `@internationalized/date`'s `parseDate` rejects a full timestamp
+ * (e.g. `2026-01-01T00:00:00.000Z`).
+ *
+ * @param {string} effectiveDate - Stored effective date, date-only or full ISO-8601 timestamp
+ * @returns {string} Date-only (`YYYY-MM-DD`) string
+ */
+export const toDateOnly = (effectiveDate: string): string => effectiveDate.slice(0, 10)
+
+/**
  * Builds the base route for a mapping group's screen (grid/add/edit share this prefix)
  *
  * @param {RenewalPackageType} packageType - Mapping group (active or pause)

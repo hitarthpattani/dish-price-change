@@ -32,7 +32,7 @@ export const getPackageMappingFormFields = (isEditing: boolean): FormBuilderComp
           label: 'Effective Date',
           code: 'effective_date',
           db_field: 'effective_date',
-          type: FieldType.TEXT,
+          type: FieldType.DATE,
           required: true,
           disabled: isEditing
         },

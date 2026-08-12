@@ -8,6 +8,7 @@ import { createPackageMappingService } from '@components/Extensions/ManageRenewa
 import {
   formatPackages,
   serializePackages,
+  toDateOnly,
   getRouteBase
 } from '@components/Extensions/ManageRenewalPackages/utils/packageMappingGridHelpers'
 import { usePackageMappingGridNotifications } from '@components/Extensions/ManageRenewalPackages/hooks/usePackageMappingGridNotifications'
@@ -74,7 +75,7 @@ export const usePackageMappingForm = (
           return
         }
         setEditItem({
-          effective_date: response.mapping.effective_date,
+          effective_date: toDateOnly(response.mapping.effective_date),
           packages: formatPackages(response.mapping.packages)
         })
       })
