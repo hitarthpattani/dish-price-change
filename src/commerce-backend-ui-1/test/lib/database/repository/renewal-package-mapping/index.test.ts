@@ -2,6 +2,7 @@
  * <license header>
  */
 
+import { ObjectId } from 'bson'
 import { RenewalPackageMappingRepository } from '@lib/database/repository/renewal-package-mapping'
 import {
   RenewalPackageMappingType,
@@ -103,14 +104,28 @@ describe('RenewalPackageMappingRepository', () => {
     })
   })
 
-  describe('deleteMapping', () => {
-    it('deletes a mapping by id', async () => {
+  describe('deleteMappings', () => {
+    it('deletes rows matching the given ids and returns the deleted count', async () => {
       const repository = createRepository()
-      const deleteById = jest.spyOn(repository, 'deleteById').mockResolvedValue({ deletedCount: 1 })
+      const deleteSpy = jest.spyOn(repository, 'delete').mockResolvedValue({ deletedCount: 1 })
 
-      await repository.deleteMapping(validId)
+      await expect(repository.deleteMappings([validId])).resolves.toBe(1)
+      expect(deleteSpy).toHaveBeenCalledWith({ _id: { $in: [new ObjectId(validId)] } })
+    })
 
-      expect(deleteById).toHaveBeenCalledWith(validId)
+    it('returns zero when the database omits deletedCount', async () => {
+      const repository = createRepository()
+      jest.spyOn(repository, 'delete').mockResolvedValue({})
+
+      await expect(repository.deleteMappings([validId])).resolves.toBe(0)
+    })
+
+    it('does not call ABDB for an empty id list', async () => {
+      const repository = createRepository()
+      const deleteSpy = jest.spyOn(repository, 'delete')
+
+      await expect(repository.deleteMappings([])).resolves.toBe(0)
+      expect(deleteSpy).not.toHaveBeenCalled()
     })
   })
 })

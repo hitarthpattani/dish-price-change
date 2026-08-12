@@ -9,9 +9,9 @@ import type { FormBuilderComponents, FormBuilderOption } from '@adobe-commerce/a
  * Package Mapping Form Field Configuration
  *
  * Generates the `DataForm` field/group schema for the Active/Pause renewal package mapping
- * add/edit screen. `effective_date` is disabled once a mapping exists (edit mode) because the
- * backend `save` action upserts by `mapping_type` + `effective_date` — changing the date on an
- * existing row would create a new row instead of updating it.
+ * add/edit screen. Note: the backend `save` action upserts by `mapping_type` + `effective_date`,
+ * so changing `effective_date` while editing creates a new row instead of updating the existing
+ * one (the old row isn't deleted) — `effective_date` is left editable regardless.
  *
  * @module packageMappingFormConfig
  */
@@ -41,29 +41,28 @@ const DEFAULT_SKU_OPTIONS: FormBuilderOption[] = [
 /**
  * Generates the form field configuration for the package mapping add/edit screen
  *
- * @param {boolean} isEditing - Whether an existing mapping is being edited
  * @returns {FormBuilderComponents} Form field configuration
  */
-export const getPackageMappingFormFields = (isEditing: boolean): FormBuilderComponents => ({
+export const getPackageMappingFormFields = (): FormBuilderComponents => ({
   groups: [
     {
       code: 'package_mapping',
       label: 'Package Mapping',
       fields: [
         {
-          label: 'Effective Date',
-          code: 'effective_date',
-          db_field: 'effective_date',
-          type: FieldType.DATE,
-          required: true,
-          disabled: isEditing
-        },
-        {
           label: 'Package SKUs',
           code: 'packages',
           db_field: 'packages',
           type: FieldType.MULTISELECT_SEARCH,
           options: DEFAULT_SKU_OPTIONS,
+          required: true,
+          disabled: false
+        },
+        {
+          label: 'Effective Date',
+          code: 'effective_date',
+          db_field: 'effective_date',
+          type: FieldType.DATE,
           required: true,
           disabled: false
         }

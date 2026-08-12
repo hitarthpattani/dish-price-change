@@ -13,25 +13,25 @@ jest.mock('@lib/database/repository/renewal-package-mapping')
 type ActionParams = Record<string, unknown>
 
 describe('delete', () => {
-  let mockDeleteMapping: jest.Mock
+  let mockDeleteMappings: jest.Mock
 
   const baseParams: ActionParams = {
     __ow_headers: { authorization: 'Bearer token', 'x-gw-ims-org-id': 'org-id' },
     __ow_method: 'post',
-    id: '507f1f77bcf86cd799439011'
+    ids: ['507f1f77bcf86cd799439011']
   }
 
   beforeEach(() => {
     jest.clearAllMocks()
     ;(GenerateAccessToken.execute as jest.Mock).mockResolvedValue('a-valid-token')
 
-    mockDeleteMapping = jest.fn().mockResolvedValue(undefined)
+    mockDeleteMappings = jest.fn().mockResolvedValue(1)
     ;(RenewalPackageMappingRepository as unknown as jest.Mock).mockImplementation(() => ({
-      deleteMapping: mockDeleteMapping
+      deleteMappings: mockDeleteMappings
     }))
   })
 
-  it('deletes the mapping and returns success', async () => {
+  it('deletes the mappings and returns success', async () => {
     const response = (await deleteAction(baseParams)) as SuccessResponse
     const body = response.body as Record<string, unknown>
 
@@ -40,7 +40,7 @@ describe('delete', () => {
 
     expect(GenerateAccessToken.execute).toHaveBeenCalledWith(baseParams)
     expect(RenewalPackageMappingRepository).toHaveBeenCalledWith('a-valid-token')
-    expect(mockDeleteMapping).toHaveBeenCalledWith(baseParams.id)
+    expect(mockDeleteMappings).toHaveBeenCalledWith(baseParams.ids)
   })
 
   it('works with the DELETE method', async () => {
@@ -53,7 +53,7 @@ describe('delete', () => {
   })
 
   it('returns 500 when deletion fails', async () => {
-    mockDeleteMapping.mockRejectedValue(new Error('abdb unavailable'))
+    mockDeleteMappings.mockRejectedValue(new Error('abdb unavailable'))
 
     const response = (await deleteAction(baseParams)) as ErrorResponse
 
@@ -62,7 +62,7 @@ describe('delete', () => {
   })
 
   it('returns 500 with a generic message for non-Error failures', async () => {
-    mockDeleteMapping.mockRejectedValue('delete failure')
+    mockDeleteMappings.mockRejectedValue('delete failure')
 
     const response = (await deleteAction(baseParams)) as ErrorResponse
 
@@ -79,11 +79,11 @@ describe('delete', () => {
     expect(response.error.body.error).toContain('token failure')
   })
 
-  it('returns 400 when the id parameter is missing', async () => {
-    const response = (await deleteAction({ ...baseParams, id: undefined })) as ErrorResponse
+  it('returns 400 when the ids parameter is missing', async () => {
+    const response = (await deleteAction({ ...baseParams, ids: undefined })) as ErrorResponse
 
     expect(response.error.statusCode).toBe(400)
-    expect(mockDeleteMapping).not.toHaveBeenCalled()
+    expect(mockDeleteMappings).not.toHaveBeenCalled()
   })
 
   it('should reject an unsupported HTTP method', async () => {

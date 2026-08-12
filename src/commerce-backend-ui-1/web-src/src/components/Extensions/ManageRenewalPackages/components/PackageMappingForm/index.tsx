@@ -2,7 +2,7 @@
  * <license header>
  */
 
-import React, { useMemo } from 'react'
+import React from 'react'
 import {
   Content,
   Divider,
@@ -34,7 +34,7 @@ export const PackageMappingForm: React.FC<{
   const { loading, isSubmitting, editItem, onFormSubmit, onPostFormSubmit, onFormDismiss } =
     usePackageMappingForm(actionCallHeaders, packageType, id)
 
-  const formFields = useMemo(() => getPackageMappingFormFields(Boolean(id)), [id])
+  const formFields = getPackageMappingFormFields()
 
   const packageLabel =
     packageType === RenewalPackageType.ACTIVE ? 'Active Renewal Package' : 'Pause Renewal Package'

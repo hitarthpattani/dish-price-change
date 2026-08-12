@@ -2,7 +2,7 @@
  * <license header>
  */
 
-import { GridActionProps } from '@adobe-commerce/aio-experience-kit'
+import { GridActionProps, MassActionProps } from '@adobe-commerce/aio-experience-kit'
 
 /**
  * Package Mapping Grid Constants
@@ -25,10 +25,10 @@ export const PACKAGE_MAPPING_MESSAGES = {
   SAVE_SUCCESS: 'Renewal package mapping saved successfully',
   /** Error message for save failure */
   SAVE_ERROR: 'Failed to save renewal package mapping',
-  /** Success message for deleting a mapping */
-  DELETE_SUCCESS: 'Renewal package mapping deleted successfully',
+  /** Success message for deleting mapping(s) */
+  DELETE_SUCCESS: 'Renewal package mapping(s) deleted successfully',
   /** Error message for delete failure */
-  DELETE_ERROR: 'Failed to delete renewal package mapping',
+  DELETE_ERROR: 'Failed to delete renewal package mapping(s)',
   /** Toast timeout duration in milliseconds */
   TOAST_TIMEOUT: 5000
 } as const
@@ -41,7 +41,7 @@ export const PACKAGE_MAPPING_DIALOG = {
   DELETE_TITLE: 'Confirm Deletion',
   /** Message for delete confirmation */
   DELETE_MESSAGE:
-    'Are you sure you want to delete this renewal package mapping? This action cannot be undone.',
+    'Are you sure you want to delete the selected renewal package mapping(s)? This action cannot be undone.',
   /** Primary button text for delete */
   PRIMARY_BUTTON_TEXT: 'Delete',
   /** Secondary button text for cancel */
@@ -65,7 +65,8 @@ export const PACKAGE_MAPPING_GRID_ACTIONS = {
  */
 export const PACKAGE_MAPPING_GRID_COLUMNS = [
   { name: 'Package SKUs', uid: 'packages' },
-  { name: 'Effective Date', uid: 'effective_date' }
+  { name: 'Effective Date', uid: 'effective_date' },
+  { name: 'Actions', uid: 'actions' }
 ]
 
 /**
@@ -73,5 +74,12 @@ export const PACKAGE_MAPPING_GRID_COLUMNS = [
  */
 export const PACKAGE_MAPPING_GRID_ACTION_PROPS: GridActionProps[] = [
   { key: 'edit', text: 'Edit' },
+  { key: 'delete', text: 'Delete' }
+]
+
+/**
+ * Mass action definitions for the package mapping data table
+ */
+export const PACKAGE_MAPPING_GRID_MASS_ACTIONS: MassActionProps[] = [
   { key: 'delete', text: 'Delete' }
 ]

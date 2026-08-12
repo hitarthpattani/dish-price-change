@@ -20,6 +20,7 @@ import { usePackageMappingGrid } from '@components/Extensions/ManageRenewalPacka
 import {
   PACKAGE_MAPPING_GRID_COLUMNS,
   PACKAGE_MAPPING_GRID_ACTION_PROPS,
+  PACKAGE_MAPPING_GRID_MASS_ACTIONS,
   PACKAGE_MAPPING_DIALOG
 } from '@components/Extensions/ManageRenewalPackages/utils/packageMappingGridConstants'
 import { RenewalPackageType } from '@components/Extensions/ManageRenewalPackages/types'
@@ -42,6 +43,7 @@ export const PackageMappingGrid: React.FC<{
     handleGridLoad,
     onAddButtonPress,
     handleGridActionPress,
+    handleMassActionPress,
     handlePrimaryPress,
     dismissConfirmationDialog
   } = usePackageMappingGrid(actionCallHeaders, packageType)
@@ -83,8 +85,15 @@ export const PackageMappingGrid: React.FC<{
           data={gridData}
           buttons={buttons}
           gridActions={PACKAGE_MAPPING_GRID_ACTION_PROPS}
+          massActions={PACKAGE_MAPPING_GRID_MASS_ACTIONS}
           isProcessing={isProcessing}
           onGridActionPress={handleGridActionPress}
+          onMassActionPress={(key, selections) =>
+            handleMassActionPress(
+              key,
+              selections.map(selection => selection.toString())
+            )
+          }
           onGridLoad={handleGridLoad}
           maxHeight={'size-6000'}
         />

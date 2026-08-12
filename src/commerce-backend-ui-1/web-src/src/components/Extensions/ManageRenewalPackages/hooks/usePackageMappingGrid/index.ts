@@ -24,8 +24,8 @@ import type {
  * Custom hook for managing the renewal package mapping grid
  *
  * Encapsulates loading of the `renewal-package/list` data for a given mapping group, and the
- * add/edit/delete navigation and actions (`renewal-package/delete`). Each Active/Pause screen is
- * a separate route mounting this hook with a fixed `packageType`.
+ * add/edit navigation and row-level/mass delete actions (`renewal-package/delete`). Each
+ * Active/Pause screen is a separate route mounting this hook with a fixed `packageType`.
  *
  * @param {Record<string, string>} actionCallHeaders - Authentication headers for API calls
  * @param {RenewalPackageType} packageType - Mapping group to load (active or pause)
@@ -84,7 +84,7 @@ export const usePackageMappingGrid = (
           navigate(`${routeBase}/form/${item.id}`)
           break
         case PACKAGE_MAPPING_GRID_ACTIONS.DELETE:
-          showConfirmationDialog(PACKAGE_MAPPING_DIALOG.DELETE_MESSAGE, item.id)
+          showConfirmationDialog(PACKAGE_MAPPING_DIALOG.DELETE_MESSAGE, [item.id])
           break
         default:
           console.log('no action for', key)
@@ -94,28 +94,48 @@ export const usePackageMappingGrid = (
     [navigate, routeBase, showConfirmationDialog]
   )
 
+  /**
+   * Handles a mass grid action (delete)
+   *
+   * @param {string} key - Action key
+   * @param {string[]} ids - Selected row ids
+   */
+  const handleMassActionPress = useCallback(
+    async (key: string, ids: string[]) => {
+      switch (key) {
+        case PACKAGE_MAPPING_GRID_ACTIONS.DELETE:
+          showConfirmationDialog(PACKAGE_MAPPING_DIALOG.DELETE_MESSAGE, ids)
+          break
+        default:
+          console.log('no action for', key)
+          break
+      }
+    },
+    [showConfirmationDialog]
+  )
+
   /** Handles primary press for the delete confirmation dialog */
   const handlePrimaryPress = useCallback(async () => {
-    const id = confirmationDialogData.id
+    const keys = confirmationDialogData.keys
     dismissConfirmationDialog()
 
-    if (!id) {
+    if (keys.length === 0) {
       return
     }
 
     setIsProcessing(true)
     try {
-      await packageMappingService.deleteMapping(id)
+      await packageMappingService.deleteMappings(keys)
       showDeleteSuccess()
       await handleGridLoad()
     } catch (error) {
-      console.error('Error deleting renewal package mapping:', error)
+      console.error('Error deleting renewal package mappings:', error)
       showDeleteError()
     } finally {
       setIsProcessing(false)
     }
   }, [
-    confirmationDialogData.id,
+    confirmationDialogData.keys,
     dismissConfirmationDialog,
     packageMappingService,
     showDeleteSuccess,
@@ -130,6 +150,7 @@ export const usePackageMappingGrid = (
     handleGridLoad,
     onAddButtonPress,
     handleGridActionPress,
+    handleMassActionPress,
     handlePrimaryPress,
     dismissConfirmationDialog
   }

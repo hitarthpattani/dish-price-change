@@ -76,7 +76,7 @@ export const createPackageMappingService = (actionCallHeaders: Record<string, st
    * @param {Object} payload - Mapping fields to save
    * @param {RenewalPackageType} payload.mapping_type - Mapping group (active or pause)
    * @param {string} payload.effective_date - ISO-8601 effective date
-   * @param {string} payload.packages - JSON-encoded array of package SKUs
+   * @param {string} payload.packages - Comma-separated list of package SKUs
    * @returns {Promise<PackageMappingSaveResponse>} Response containing the saved mapping record
    */
   const saveMapping = async (payload: {
@@ -98,15 +98,15 @@ export const createPackageMappingService = (actionCallHeaders: Record<string, st
   }
 
   /**
-   * Deletes a package mapping by its ABDB record id
+   * Deletes package mappings by their ABDB record ids
    *
-   * @param {string} id - Record id to delete
+   * @param {string[]} ids - Record ids to delete
    */
-  const deleteMapping = async (id: string): Promise<void> => {
+  const deleteMappings = async (ids: string[]): Promise<void> => {
     try {
-      await actionWebInvoke(actions['renewal-package/delete'], actionCallHeaders, { id })
+      await actionWebInvoke(actions['renewal-package/delete'], actionCallHeaders, { ids })
     } catch (error) {
-      console.error('Error deleting renewal package mapping:', error)
+      console.error('Error deleting renewal package mappings:', error)
       throw error
     }
   }
@@ -115,6 +115,6 @@ export const createPackageMappingService = (actionCallHeaders: Record<string, st
     listMappings,
     getMapping,
     saveMapping,
-    deleteMapping
+    deleteMappings
   }
 }

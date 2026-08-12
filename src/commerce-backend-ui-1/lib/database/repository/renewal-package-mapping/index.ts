@@ -5,6 +5,7 @@
 /* This file exposes the RenewalPackageMappingRepository class */
 
 import { AbdbRepository } from '@adobe-commerce/aio-toolkit'
+import { ObjectId } from 'bson'
 import { RenewalPackageMappingCollection } from '@lib/database/collection/renewal-package-mapping'
 import {
   RenewalPackageMappingType,
@@ -70,12 +71,18 @@ export class RenewalPackageMappingRepository extends AbdbRepository<SlingRenewal
   }
 
   /**
-   * Delete a mapping row by id.
+   * Delete mapping rows by id (row-level and mass delete actions).
    *
-   * @param id - ABDB identifier of the mapping to delete.
+   * @param ids - ABDB identifiers of the mappings to delete.
+   * @returns Number of records deleted; zero when `ids` is empty.
    */
-  public async deleteMapping(id: string): Promise<void> {
-    await this.deleteById(id)
+  public async deleteMappings(ids: string[]): Promise<number> {
+    if (ids.length === 0) {
+      return 0
+    }
+
+    const result = await this.delete({ _id: { $in: ids.map(id => new ObjectId(id)) } })
+    return typeof result.deletedCount === 'number' ? result.deletedCount : 0
   }
 
   /**
