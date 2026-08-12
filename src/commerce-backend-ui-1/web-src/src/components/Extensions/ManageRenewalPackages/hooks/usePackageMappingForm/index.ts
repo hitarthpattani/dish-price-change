@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouteParams } from '@adobe-commerce/aio-experience-kit'
+import type { FormBuilderOption } from '@adobe-commerce/aio-experience-kit'
 import { createPackageMappingService } from '@components/Extensions/ManageRenewalPackages/utils/packageMappingService'
 import {
   parsePackages,
@@ -22,8 +23,10 @@ const BLANK_ITEM: PackageMappingFormItem = { effective_date: '', packages: [] }
 /**
  * Custom hook for managing the renewal package mapping add/edit form
  *
- * Loads the existing mapping via `renewal-package/get` when `id` is set (edit mode), or seeds a
- * blank item (create mode), then saves via `renewal-package/save` on submit.
+ * Loads the existing mapping via `renewal-package/load` when `id` is set (edit mode), or seeds a
+ * blank item (create mode); loads the `packages` field's SKU options via `renewal-package/skus`
+ * (Adobe Commerce's enabled product catalog) regardless of mode; then saves via
+ * `renewal-package/save` on submit.
  *
  * @param {Record<string, string>} actionCallHeaders - Authentication headers for API calls
  * @param {RenewalPackageType} packageType - Mapping group this form edits (active or pause)
@@ -35,7 +38,9 @@ export const usePackageMappingForm = (
   packageType: RenewalPackageType,
   id: string | undefined
 ) => {
-  const [loading, setLoading] = useState<boolean>(true)
+  const [mappingLoading, setMappingLoading] = useState<boolean>(true)
+  const [skusLoading, setSkusLoading] = useState<boolean>(true)
+  const [skuOptions, setSkuOptions] = useState<FormBuilderOption[]>([])
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [editItem, setEditItem] = useState<PackageMappingFormItem>(BLANK_ITEM)
 
@@ -44,7 +49,8 @@ export const usePackageMappingForm = (
     [actionCallHeaders]
   )
 
-  const { showGetError, showSaveSuccess, showSaveError } = usePackageMappingGridNotifications()
+  const { showLoadMappingError, showLoadSkusError, showSaveSuccess, showSaveError } =
+    usePackageMappingGridNotifications()
 
   const service = useRouteParams()
   const navigate = service.getNavigate()
@@ -60,16 +66,41 @@ export const usePackageMappingForm = (
     []
   )
 
+  // Loads the `packages` field's SKU options — independent of `id`, since both the add and edit
+  // screens need the same Commerce product catalog.
+  useEffect(() => {
+    setSkusLoading(true)
+    packageMappingService
+      .listSkus()
+      .then(response => {
+        if (!isMountedRef.current) {
+          return
+        }
+        setSkuOptions(response.skus.map(sku => ({ value: sku, label: sku })))
+      })
+      .catch(error => {
+        console.error('Error loading renewal package SKU options:', error)
+        if (isMountedRef.current) {
+          showLoadSkusError()
+        }
+      })
+      .finally(() => {
+        if (isMountedRef.current) {
+          setSkusLoading(false)
+        }
+      })
+  }, [packageMappingService, showLoadSkusError])
+
   useEffect(() => {
     if (!id) {
       setEditItem(BLANK_ITEM)
-      setLoading(false)
+      setMappingLoading(false)
       return
     }
 
-    setLoading(true)
+    setMappingLoading(true)
     packageMappingService
-      .getMapping(id)
+      .loadMapping(id)
       .then(response => {
         if (!isMountedRef.current) {
           return
@@ -82,15 +113,15 @@ export const usePackageMappingForm = (
       .catch(error => {
         console.error('Error loading renewal package mapping:', error)
         if (isMountedRef.current) {
-          showGetError()
+          showLoadMappingError()
         }
       })
       .finally(() => {
         if (isMountedRef.current) {
-          setLoading(false)
+          setMappingLoading(false)
         }
       })
-  }, [id, packageMappingService, showGetError])
+  }, [id, packageMappingService, showLoadMappingError])
 
   // Set on a successful save, consumed (and cleared) by onPostFormSubmit. DataForm's FormBuilder
   // calls `setSubmitting(false)` on itself right after `onFormSubmit` resolves, then awaits
@@ -107,11 +138,14 @@ export const usePackageMappingForm = (
     async (values: PackageMappingFormItem): Promise<void> => {
       setIsSubmitting(true)
       try {
-        await packageMappingService.saveMapping({
-          mapping_type: packageType,
-          effective_date: values.effective_date,
-          packages: serializePackages(values.packages)
-        })
+        await packageMappingService.saveMapping(
+          {
+            mapping_type: packageType,
+            effective_date: values.effective_date,
+            packages: serializePackages(values.packages)
+          },
+          id
+        )
         if (!isMountedRef.current) {
           return
         }
@@ -128,7 +162,7 @@ export const usePackageMappingForm = (
         }
       }
     },
-    [packageMappingService, packageType, showSaveSuccess, showSaveError]
+    [packageMappingService, packageType, id, showSaveSuccess, showSaveError]
   )
 
   /** Navigates back to the grid once DataForm has finished its own post-submit state update */
@@ -145,7 +179,8 @@ export const usePackageMappingForm = (
   }, [navigate, routeBase])
 
   return {
-    loading,
+    loading: mappingLoading || skusLoading,
+    skuOptions,
     isSubmitting,
     editItem,
     onFormSubmit,

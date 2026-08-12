@@ -20,7 +20,9 @@ export const PACKAGE_MAPPING_MESSAGES = {
   /** Error message for load failure */
   LOAD_ERROR: 'Failed to load renewal package mappings',
   /** Error message for a single mapping load failure (edit form) */
-  GET_ERROR: 'Failed to load the renewal package mapping',
+  LOAD_MAPPING_ERROR: 'Failed to load the renewal package mapping',
+  /** Error message for a SKU options load failure (add/edit form) */
+  LOAD_SKUS_ERROR: 'Failed to load available SKUs from Adobe Commerce',
   /** Success message for saving a mapping */
   SAVE_SUCCESS: 'Renewal package mapping saved successfully',
   /** Error message for save failure */

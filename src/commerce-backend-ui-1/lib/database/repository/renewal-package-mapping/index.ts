@@ -44,30 +44,33 @@ export class RenewalPackageMappingRepository extends AbdbRepository<SlingRenewal
   }
 
   /**
-   * Upsert a mapping row (create or replace by mapping_type + effective_date).
+   * Create a new mapping row, or update an existing one by `id`.
    *
-   * @param rec - Complete mapping record to create or replace.
-   * @returns The mapping read back after the upsert.
-   * @throws Error When the mapping type or packages list is invalid, or the upsert cannot be read back.
+   * Explicitly branches on `id` rather than upserting by `mapping_type` + `effective_date` —
+   * that filter previously matched (and silently overwrote) an unrelated existing row sharing the
+   * same `mapping_type` when creating a new mapping. Editing by `id` also means changing
+   * `effective_date` on an existing row now updates that row in place instead of creating a
+   * duplicate.
+   *
+   * @param rec - Mapping fields to save.
+   * @param id - ABDB identifier of the mapping to update; omitted when creating a new mapping.
+   * @returns The saved mapping record.
+   * @throws Error When the mapping type or packages list is invalid.
    */
   public async saveMapping(
-    rec: SlingRenewalPackageMappingRecord
+    rec: SlingRenewalPackageMappingRecord,
+    id?: string
   ): Promise<SlingRenewalPackageMappingRecord> {
     this.assertMappingType(rec.mapping_type)
     this.assertPackages(rec.packages)
 
-    const filter = {
-      mapping_type: rec.mapping_type,
-      effective_date: rec.effective_date
-    }
-    await this.updateOne(rec, filter, { upsert: true })
-
-    const saved = await this.findOne(filter)
-    if (!saved) {
-      throw new Error('Mapping was not found after upsert')
+    if (id) {
+      await this.updateOne(rec, { _id: new ObjectId(id) }, { upsert: true })
+      return { ...rec, _id: id }
     }
 
-    return saved
+    const result = await this.insertOne(rec)
+    return { ...rec, _id: String(result.insertedId) }
   }
 
   /**

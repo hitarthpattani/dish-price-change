@@ -2,6 +2,18 @@
  * <license header>
  */
 
+const mockGet = jest.fn()
+
+jest.mock('@adobe-commerce/aio-toolkit', () => ({
+  AdobeCommerceClient: jest.fn().mockImplementation((baseUrl: string) => {
+    if (!baseUrl) {
+      throw new Error('Commerce URL must be provided')
+    }
+    return { get: mockGet }
+  }),
+  Oauth1aConnection: jest.fn()
+}))
+
 import { AdobeCommerceCatalogClient } from '@lib/adobe-commerce/catalog'
 
 describe('AdobeCommerceCatalogClient', () => {
@@ -14,15 +26,30 @@ describe('AdobeCommerceCatalogClient', () => {
       COMMERCE_ACCESS_TOKEN_SECRET: 'token-secret'
     })
 
+  beforeEach(() => {
+    mockGet.mockReset()
+  })
+
   it('should apply fallback defaults when params are missing', () => {
     expect(() => new AdobeCommerceCatalogClient({})).toThrow('Commerce URL must be provided')
   })
 
   describe('fetchEnabledPackageProducts', () => {
-    it('should throw TODO error', async () => {
-      await expect(createClient().fetchEnabledPackageProducts()).rejects.toThrow(
-        'TODO: implement fetchEnabledPackageProducts'
+    it('should call the products search endpoint filtered to enabled and return the result', async () => {
+      const products = [{ sku: 'SKU-1', name: 'Product 1', status: 1 }]
+      mockGet.mockResolvedValue({ success: true, message: { items: products, total_count: 1 } })
+
+      const result = await createClient().fetchEnabledPackageProducts()
+
+      expect(mockGet).toHaveBeenCalledWith(
+        'V1/products?' +
+          'searchCriteria[filterGroups][0][filters][0][field]=status&' +
+          'searchCriteria[filterGroups][0][filters][0][value]=1&' +
+          'searchCriteria[filterGroups][0][filters][0][conditionType]=eq&' +
+          'searchCriteria[pageSize]=200',
+        { 'Content-Type': 'application/json' }
       )
+      expect(result).toEqual({ success: true, message: { items: products, total_count: 1 } })
     })
   })
 

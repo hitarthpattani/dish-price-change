@@ -20,8 +20,15 @@ export const usePackageMappingGridNotifications = () => {
   }, [])
 
   /** Display a single mapping load error toast message (edit form) */
-  const showGetError = useCallback(() => {
-    ToastQueue.negative(PACKAGE_MAPPING_MESSAGES.GET_ERROR, {
+  const showLoadMappingError = useCallback(() => {
+    ToastQueue.negative(PACKAGE_MAPPING_MESSAGES.LOAD_MAPPING_ERROR, {
+      timeout: PACKAGE_MAPPING_MESSAGES.TOAST_TIMEOUT
+    })
+  }, [])
+
+  /** Display a SKU options load error toast message (add/edit form) */
+  const showLoadSkusError = useCallback(() => {
+    ToastQueue.negative(PACKAGE_MAPPING_MESSAGES.LOAD_SKUS_ERROR, {
       timeout: PACKAGE_MAPPING_MESSAGES.TOAST_TIMEOUT
     })
   }, [])
@@ -56,7 +63,8 @@ export const usePackageMappingGridNotifications = () => {
 
   return {
     showLoadError,
-    showGetError,
+    showLoadMappingError,
+    showLoadSkusError,
     showSaveSuccess,
     showSaveError,
     showDeleteSuccess,

@@ -13,9 +13,12 @@ import { AdobeCommerceClient, Oauth1aConnection } from '@adobe-commerce/aio-tool
  * BLOCKING — Reinterpretation §11 item 2 (Custom Pricing & Bundle Data Sources): in the source
  * these come from custom Dish modules (PlanOffers, Sales, CustomerCart), not stock Commerce
  * endpoints. How App Builder reaches them (custom REST/GraphQL, DB replication, or API Mesh) must
- * be resolved before the operations below can be implemented.
+ * be resolved before `fetchPlanOfferPricing`/`fetchBundleChildAssociations` can be implemented.
+ * `fetchEnabledPackageProducts` sidesteps this for now by returning every enabled product from the
+ * stock Commerce catalog (see its own doc comment).
  *
- * Consumed by: Flow 3 (eligibility/package-pricing), Flow 5 (bundle GUID cache rebuild).
+ * Consumed by: Flow 3 (eligibility/package-pricing), Flow 5 (bundle GUID cache rebuild), and the
+ * `renewal-package/skus` action (SKU options for the Active/Pause mapping form).
  */
 export class AdobeCommerceCatalogClient {
   private client: AdobeCommerceClient
@@ -34,12 +37,22 @@ export class AdobeCommerceCatalogClient {
   }
 
   /**
-   * Fetch enabled products flagged as "Package" (plan §5.4).
+   * Fetch enabled products (plan §5.4).
+   *
+   * Endpoint: `GET V1/products`, filtered to `status=1` (enabled). Reinterpretation §11 item 2
+   * flags that filtering specifically on Dish's custom "Package" product attribute is blocked
+   * pending a decision on how App Builder reaches that custom data source — until then, this
+   * returns every enabled product as a pragmatic default (e.g. for populating SKU pickers).
    */
   async fetchEnabledPackageProducts(): Promise<unknown> {
-    // TODO: Implement per migration plan §5.4 "Adobe Commerce (catalog/pricing)" operations
-    // Endpoint: custom Dish source (see §11 item 2). Use this.client.get(...).
-    throw new Error('TODO: implement fetchEnabledPackageProducts')
+    return this.client.get(
+      'V1/products?' +
+        'searchCriteria[filterGroups][0][filters][0][field]=status&' +
+        'searchCriteria[filterGroups][0][filters][0][value]=1&' +
+        'searchCriteria[filterGroups][0][filters][0][conditionType]=eq&' +
+        'searchCriteria[pageSize]=200',
+      { 'Content-Type': 'application/json' }
+    )
   }
 
   /**

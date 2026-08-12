@@ -12,7 +12,7 @@ import { PackageMappingForm } from './components/PackageMappingForm'
  * Active/Pause Renewal Package Mappings screen (plan §8.4.e) — feature `ManageRenewalPackages`.
  *
  * Switches between a grid listing the SKU→date package mappings for the given `packageType`
- * (`renewal-package/list?type=active|pause`) and an add/edit form (`renewal-package/get`/`save`),
+ * (`renewal-package/list?type=active|pause`) and an add/edit form (`renewal-package/load`/`save`),
  * based on the `:component`/`:id` route segments — mirroring the
  * `/active-renewal-packages(/:component(/:id))` style routing already used for other screens.
  *

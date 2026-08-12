@@ -41,8 +41,8 @@ export interface PackageMappingGridItem {
   packages: string
 }
 
-/** Response shape returned by the `renewal-package/get` action. */
-export interface PackageMappingGetResponse {
+/** Response shape returned by the `renewal-package/load` action. */
+export interface PackageMappingLoadResponse {
   mapping: PackageMappingItem
 }
 
@@ -55,4 +55,9 @@ export interface PackageMappingSaveResponse {
 export interface PackageMappingFormItem {
   effective_date: string
   packages: string[]
+}
+
+/** Response shape returned by the `renewal-package/skus` action. */
+export interface PackageMappingSkusResponse {
+  skus: string[]
 }

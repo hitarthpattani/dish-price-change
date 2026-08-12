@@ -60,35 +60,28 @@ describe('RenewalPackageMappingRepository', () => {
   })
 
   describe('saveMapping', () => {
-    it('upserts by mapping type and effective date and returns the stored row', async () => {
+    it('inserts a new row and stamps the generated id when no id is given', async () => {
       const repository = createRepository()
-      const updateOne = jest.spyOn(repository, 'updateOne').mockResolvedValue({ upsertedCount: 1 })
-      const findOne = jest
-        .spyOn(repository, 'findOne')
-        .mockResolvedValue({ ...record, _id: validId })
+      const insertOne = jest
+        .spyOn(repository, 'insertOne')
+        .mockResolvedValue({ insertedId: new ObjectId(validId) })
 
       await expect(repository.saveMapping(record)).resolves.toEqual({ ...record, _id: validId })
-      expect(updateOne).toHaveBeenCalledWith(
-        record,
-        {
-          mapping_type: RenewalPackageMappingType.ACTIVE,
-          effective_date: record.effective_date
-        },
-        { upsert: true }
-      )
-      expect(findOne).toHaveBeenCalledWith({
-        mapping_type: RenewalPackageMappingType.ACTIVE,
-        effective_date: record.effective_date
-      })
+      expect(insertOne).toHaveBeenCalledWith(record)
     })
 
-    it('fails when an upsert cannot be read back', async () => {
+    it('updates the row matching the given id', async () => {
       const repository = createRepository()
-      jest.spyOn(repository, 'updateOne').mockResolvedValue({ upsertedCount: 1 })
-      jest.spyOn(repository, 'findOne').mockResolvedValue(null)
+      const updateOne = jest.spyOn(repository, 'updateOne').mockResolvedValue({ matchedCount: 1 })
 
-      await expect(repository.saveMapping(record)).rejects.toThrow(
-        'Mapping was not found after upsert'
+      await expect(repository.saveMapping(record, validId)).resolves.toEqual({
+        ...record,
+        _id: validId
+      })
+      expect(updateOne).toHaveBeenCalledWith(
+        record,
+        { _id: new ObjectId(validId) },
+        { upsert: true }
       )
     })
 

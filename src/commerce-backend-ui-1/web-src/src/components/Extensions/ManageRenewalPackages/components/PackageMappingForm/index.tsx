@@ -31,10 +31,17 @@ export const PackageMappingForm: React.FC<{
   packageType: RenewalPackageType
   id: string | undefined
 }> = ({ actionCallHeaders, packageType, id }) => {
-  const { loading, isSubmitting, editItem, onFormSubmit, onPostFormSubmit, onFormDismiss } =
-    usePackageMappingForm(actionCallHeaders, packageType, id)
+  const {
+    loading,
+    skuOptions,
+    isSubmitting,
+    editItem,
+    onFormSubmit,
+    onPostFormSubmit,
+    onFormDismiss
+  } = usePackageMappingForm(actionCallHeaders, packageType, id)
 
-  const formFields = getPackageMappingFormFields()
+  const formFields = getPackageMappingFormFields(skuOptions)
 
   const packageLabel =
     packageType === RenewalPackageType.ACTIVE ? 'Active Renewal Package' : 'Pause Renewal Package'

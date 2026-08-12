@@ -37,7 +37,7 @@ describe('save', () => {
     }))
   })
 
-  it('saves the mapping and returns it', async () => {
+  it('creates a new mapping when no id is given', async () => {
     const response = (await save(baseParams)) as SuccessResponse
     const body = response.body as Record<string, unknown>
 
@@ -46,7 +46,17 @@ describe('save', () => {
 
     expect(GenerateAccessToken.execute).toHaveBeenCalledWith(baseParams)
     expect(RenewalPackageMappingRepository).toHaveBeenCalledWith('a-valid-token')
-    expect(mockSaveMapping).toHaveBeenCalledWith(mapping)
+    expect(mockSaveMapping).toHaveBeenCalledWith(mapping, undefined)
+  })
+
+  it('updates the mapping with the given id', async () => {
+    const response = (await save({
+      ...baseParams,
+      id: '507f1f77bcf86cd799439011'
+    })) as SuccessResponse
+
+    expect(response.statusCode).toBe(200)
+    expect(mockSaveMapping).toHaveBeenCalledWith(mapping, '507f1f77bcf86cd799439011')
   })
 
   it('returns 500 when saving fails', async () => {

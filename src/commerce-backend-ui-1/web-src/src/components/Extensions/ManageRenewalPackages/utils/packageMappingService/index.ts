@@ -6,8 +6,9 @@ import allActions from '@web/config.json'
 import actionWebInvoke from '@web/utils'
 import type {
   PackageMappingListResponse,
-  PackageMappingGetResponse,
+  PackageMappingLoadResponse,
   PackageMappingSaveResponse,
+  PackageMappingSkusResponse,
   RenewalPackageType
 } from '@components/Extensions/ManageRenewalPackages/types'
 
@@ -53,17 +54,17 @@ export const createPackageMappingService = (actionCallHeaders: Record<string, st
    * Loads a single package mapping by its ABDB record id
    *
    * @param {string} id - Record id to load
-   * @returns {Promise<PackageMappingGetResponse>} Response containing the mapping record
+   * @returns {Promise<PackageMappingLoadResponse>} Response containing the mapping record
    */
-  const getMapping = async (id: string): Promise<PackageMappingGetResponse> => {
+  const loadMapping = async (id: string): Promise<PackageMappingLoadResponse> => {
     try {
       const response = await actionWebInvoke(
-        actions['renewal-package/get'],
+        actions['renewal-package/load'],
         actionCallHeaders,
         { id },
         { method: 'GET' }
       )
-      return response as PackageMappingGetResponse
+      return response as PackageMappingLoadResponse
     } catch (error) {
       console.error('Error loading renewal package mapping:', error)
       throw error
@@ -71,24 +72,28 @@ export const createPackageMappingService = (actionCallHeaders: Record<string, st
   }
 
   /**
-   * Creates or replaces a package mapping (upsert by mapping_type + effective_date)
+   * Creates a new package mapping, or updates an existing one by id
    *
    * @param {Object} payload - Mapping fields to save
    * @param {RenewalPackageType} payload.mapping_type - Mapping group (active or pause)
    * @param {string} payload.effective_date - ISO-8601 effective date
    * @param {string} payload.packages - Comma-separated list of package SKUs
+   * @param {string} [id] - Record id to update; omitted when creating a new mapping
    * @returns {Promise<PackageMappingSaveResponse>} Response containing the saved mapping record
    */
-  const saveMapping = async (payload: {
-    mapping_type: RenewalPackageType
-    effective_date: string
-    packages: string
-  }): Promise<PackageMappingSaveResponse> => {
+  const saveMapping = async (
+    payload: {
+      mapping_type: RenewalPackageType
+      effective_date: string
+      packages: string
+    },
+    id?: string
+  ): Promise<PackageMappingSaveResponse> => {
     try {
       const response = await actionWebInvoke(
         actions['renewal-package/save'],
         actionCallHeaders,
-        payload
+        id ? { ...payload, id } : payload
       )
       return response as PackageMappingSaveResponse
     } catch (error) {
@@ -111,10 +116,32 @@ export const createPackageMappingService = (actionCallHeaders: Record<string, st
     }
   }
 
+  /**
+   * Lists the SKUs available to select in the `packages` field, sourced from Adobe Commerce's
+   * enabled product catalog
+   *
+   * @returns {Promise<PackageMappingSkusResponse>} Response containing the available SKUs
+   */
+  const listSkus = async (): Promise<PackageMappingSkusResponse> => {
+    try {
+      const response = await actionWebInvoke(
+        actions['renewal-package/skus'],
+        actionCallHeaders,
+        {},
+        { method: 'GET' }
+      )
+      return response as PackageMappingSkusResponse
+    } catch (error) {
+      console.error('Error listing renewal package SKUs:', error)
+      throw error
+    }
+  }
+
   return {
     listMappings,
-    getMapping,
+    loadMapping,
     saveMapping,
-    deleteMappings
+    deleteMappings,
+    listSkus
   }
 }

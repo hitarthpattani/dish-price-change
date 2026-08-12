@@ -7,14 +7,14 @@ import { GenerateAccessToken } from '@lib/utils/generate-access-token'
 import { RenewalPackageMappingRepository } from '@lib/database/repository/renewal-package-mapping'
 
 /**
- * get (plan §8.4.e, §11 item 8) — package `renewal-package`.
+ * load (plan §8.4.e, §11 item 8) — package `renewal-package`.
  *
  * SPA-invoked read API for a single Active/Pause SKU→date package mapping: GET `?id=<record id>`,
  * via the base `findById`. Web action (require-adobe-auth: true), called directly from the SPA
  * with actionCallHeaders — no apis.config REST mapping needed (see GENERATOR-DELTA §16).
  */
 export const main = RuntimeAction.execute(
-  'get',
+  'load',
   [HttpMethod.GET],
   ['id'],
   ['authorization', 'x-gw-ims-org-id'],
@@ -22,7 +22,7 @@ export const main = RuntimeAction.execute(
     const { logger } = ctx
 
     try {
-      logger.info('Renewal package mapping get action called')
+      logger.info('Renewal package mapping load action called')
 
       const id = params.id as string
 
@@ -36,7 +36,7 @@ export const main = RuntimeAction.execute(
 
       return RuntimeActionResponse.success({ mapping })
     } catch (error) {
-      logger.error('Unexpected error in get action:', error)
+      logger.error('Unexpected error in load action:', error)
       return RuntimeActionResponse.error(
         500,
         `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`
